@@ -10,7 +10,7 @@ This repository contains the AI chatbot project developed for the 2nd year exhib
 
 ### **Phase 1: Core Chatbot**
 
-1. Build an encoder-decoder transformer (RAG-based with FAISS)
+1. Build an encoder-decoder transformer
 2. Develop a custom dataset loader
 3. Implement a BPE Tokenizer
 
@@ -27,8 +27,11 @@ This repository contains the AI chatbot project developed for the 2nd year exhib
 * Add text-to-speech (TTS) output
 
 ---
-
-### **Phase 3: Vision Integration**
+### **Phase 3: (RAG-based with FAISS)**
+* Somehow add Rag capablities to the model
+* Add FAISS for faster RAG
+---
+### **Phase 4: Vision Integration**
 
 * Add image recognition capabilities
 * Upgrade to live screen feed processing
