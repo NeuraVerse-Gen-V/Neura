@@ -29,7 +29,7 @@ b) Turn that image recognition into live feed
 
 # STRUCTURE OF THE PROJECT
 
-/PRODUCT EXHIBITION
+/PROJECTEXHIBITION
 ├── main.py              # controller
 ├── model/
 │   ├── transformer.py   # encoder-decoder model
