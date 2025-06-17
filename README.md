@@ -1,45 +1,76 @@
-# Project Exhibition
-Here lies the project for 2nd year.
+Here’s a cleaned and more professional version of your `.md`:
 
+---
 
+# 🎓 Project Exhibition
 
+This repository contains the AI chatbot project developed for the 2nd year exhibition.
 
-# AI MODEL ROADMAP
-Things to make-
+---
 
-Phase 1-
+# 🧠 AI Model Roadmap
 
-1- Make the chatbot
+### **Phase 1: Core Chatbot**
 
-a) make an encoder-decoder transformer model architecture (rag based with faiss)
-b) make a custom dataset loader
-c) BPE Tokenizer-(words to tokens, tokens to words, tokenizer trainer)
-d) Make a trainer and an inference script
-e) make a config.py to store the model configs
+1. Build an encoder-decoder transformer (RAG-based with FAISS)
+2. Develop a custom dataset loader
+3. Implement a BPE Tokenizer
 
-Phase 2-
-a) Add speech recognition/input
-b) Add speech output
+   * Tokenization: words ⇄ tokens
+   * Trainer for tokenizer
+4. Create a training and inference script
+5. Add `config.py` for model configurations
 
-Phase 3-
-a) Give the model image recognition
-b) Turn that image recognition into live feed
+---
 
+### **Phase 2: Voice Interface**
 
+* Add speech-to-text (STT) input
+* Add text-to-speech (TTS) output
 
-# STRUCTURE OF THE PROJECT
+---
 
-/PROJECTEXHIBITION
-├── main.py              # controller
+### **Phase 3: Vision Integration**
+
+* Add image recognition capabilities
+* Upgrade to live screen feed processing
+
+---
+
+# 🗂️ Project Structure
+
+```
+/PROJECT_EXHIBITION
+├── main.py              # Main controller
 ├── model/
-│   ├── transformer.py   # encoder-decoder model
+│   ├── transformer.py   # Encoder-decoder model
 │   ├── tokenizer.py     # BPE tokenizer
 │   └── inference.py     # generate() function
 ├── voice/
-│   ├── stt.py           # speech-to-text → tensor
-│   ├── tts.py           # text-to-speech
+│   ├── stt.py           # Speech-to-text → tensor
+│   ├── tts.py           # Text-to-speech
 ├── vision/
-│   ├── screen_reader.py # screen capture + OCR/CNN
-│   └── preprocess.py    # image → tensor
+│   ├── screen_reader.py # Screen capture + OCR or CNN
+│   └── preprocess.py    # Image → tensor
 ├── utils/
-│   └── config.py        # json config loader/saver
+│   └── config.py        # JSON config loader/saver
+```
+
+---
+
+# 🔄 Data Flow Overview
+
+```
+[Image] ─► Image Encoder (CNN / ViT)
+                  ↓
+             Image Embeddings  ─┐
+                                │
+[Text Input] ─► BPE Tokenizer ─► Text Encoder ─┐
+                                              │
+                     ┌────────────────────────┘
+                     │  Fusion Module (optional)
+                     ↓
+                  Decoder
+                     ↓
+             [Generated Response]
+```
