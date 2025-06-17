@@ -1,8 +1,6 @@
-Here’s a cleaned and more professional version of your `.md`:
-
 ---
 
-# 🎓 Project Exhibition
+# Project Exhibition
 
 This repository contains the AI chatbot project developed for the 2nd year exhibition.
 
