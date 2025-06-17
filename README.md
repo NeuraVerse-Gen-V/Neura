@@ -6,7 +6,7 @@ This repository contains the AI chatbot project developed for the 2nd year exhib
 
 ---
 
-# 🧠 AI Model Roadmap
+# AI Model Roadmap
 
 ### **Phase 1: Core Chatbot**
 
@@ -35,7 +35,7 @@ This repository contains the AI chatbot project developed for the 2nd year exhib
 
 ---
 
-# 🗂️ Project Structure
+# Project Structure
 
 ```
 /PROJECT_EXHIBITION
@@ -56,7 +56,7 @@ This repository contains the AI chatbot project developed for the 2nd year exhib
 
 ---
 
-# 🔄 Data Flow Overview
+# Data Flow Overview
 
 ```
 [Image] ─► Image Encoder (CNN / ViT)
