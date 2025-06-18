@@ -30,8 +30,11 @@ This repository contains the AI chatbot project developed for the 2nd year exhib
 ### **Phase 3: (RAG-based with FAISS)**
 * Somehow add Rag capablities to the model
 * Add FAISS for faster RAG
+
+### **Phase 4: Add sentiments**
+* Add emotions to the Model
 ---
-### **Phase 4: Vision Integration**
+### **Phase 5: Vision Integration**
 
 * Add image recognition capabilities
 * Upgrade to live screen feed processing
