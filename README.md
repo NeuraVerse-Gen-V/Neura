@@ -32,7 +32,22 @@ This repository contains the AI chatbot project developed for the 2nd year exhib
 * Add FAISS for faster RAG
 
 ### **Phase 4: Add sentiments**
-* Add emotions to the Model
+Add Emotion Embeddings
+
+   * For user mood and bot mood
+   * Inject into decoder or fusion
+
+Condition response on emotion
+   * Bot replies happily/sadly etc.
+
+Integrate Response Classifier
+   * Detect rude/toxic replies using heuristics or model
+
+Build Reflex Generator Module
+   * Custom train the model to generate appopriate responses
+
+Update Inference Pipeline
+   * If bot says something flagged → run reflex generator → append apology
 ---
 ### **Phase 5: Vision Integration**
 
