@@ -58,19 +58,23 @@ Update Inference Pipeline
 
 ```
 /PROJECT_EXHIBITION
-├── main.py              # Main controller
+├── main.py                     # Main controller
 ├── model/
-│   ├── transformer.py   # Encoder-decoder model
-│   ├── tokenizer.py     # BPE tokenizer
-│   └── inference.py     # generate() function
+│   ├── transformer.py          # Encoder-decoder model
+│   ├── tokenizer.py            # BPE tokenizer
+│   ├── inference.py            # generate() + structured output
+│   └── reflex_generator.py     # (Optional fallback generator)
 ├── voice/
-│   ├── stt.py           # Speech-to-text → tensor
-│   ├── tts.py           # Text-to-speech
+│   ├── stt.py                  # Speech-to-text → tensor
+│   └── tts.py                  # Text-to-speech
 ├── vision/
-│   ├── screen_reader.py # Screen capture + OCR or CNN
-│   └── preprocess.py    # Image → tensor
+│   ├── screen_reader.py        # Screen capture + OCR or CNN
+│   └── preprocess.py           # Image → tensor
 ├── utils/
-│   └── config.py        # JSON config loader/saver
+│   ├── config.py               # JSON config loader/saver
+│   ├── emotion_control.py      # Inject user/bot emotion tokens
+│   └── output_parser.py        # Parse & validate model JSON output
+
 ```
 
 ---
