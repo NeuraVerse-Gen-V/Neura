@@ -61,6 +61,7 @@ Update Inference Pipeline
 ├── main.py                     # Main controller
 ├── model/
 │   ├── transformer.py          # Encoder-decoder model
+|   ├── vision_encoder.py       # ViT or CNN encoder for image → embedding
 │   ├── tokenizer.py            # BPE tokenizer
 │   ├── inference.py            # generate() + structured output
 │   └── reflex_generator.py     # (Optional fallback generator)
