@@ -31,6 +31,7 @@ This repository contains the AI chatbot project developed for the 2nd year exhib
 * Somehow add Rag capablities to the model
 * Add FAISS for faster RAG
 
+---
 ### **Phase 4: Add sentiments**
 Add Emotion Embeddings
 
