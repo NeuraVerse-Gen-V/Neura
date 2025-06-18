@@ -41,9 +41,6 @@ Add Emotion Embeddings
 Condition response on emotion
    * Bot replies happily/sadly etc.
 
-Integrate Response Classifier
-   * Detect rude/toxic replies using heuristics or model
-
 Build Reflex Generator Module
    * Custom train the model to generate appopriate responses
 
@@ -85,27 +82,59 @@ Update Inference Pipeline
                   ↓
              Image Embeddings  ─┐
                                 │
-[Text Input] ─► BPE Tokenizer ─► Text Encoder ─┐
+[Text Input] ─► BPE Tokenizer ─►Text Encoder ─┐
                                               │
 [User Emotion ID] ─► Emotion Embedding ───────┤
 [Bot Emotion ID ] ─► Emotion Embedding ───────┘
+                                              ↓
+                                  Fusion Module / Attention
+                                              ↓
+                                           Decoder
+                                              ↓
+     ┌─────────────────────────────────────────────────────────┐
+     │     Structured Output (as JSON):                        │
+     │                                                         │
+     │  {                                                      │
+     │    "output": "I'm sorry, that was rude of me.",         │
+     │    "emotion": "ashamed",                                │
+     │    "motion": { "expression": "sad", "intensity": 0.8 }, │
+     │    "toggles": { "sweat": true }                         │
+     │  }                                                      │
+     └─────────────────────────────────────────────────────────┘
                      ↓
-           Fusion Module / Attention
-                     ↓
-                  Decoder
-                     ↓
-             [Generated Response] ──┐
-                                    ↓
-                      Response Classifier (Toxic/Rude?)
-                                    ↓
-         ┌──────────────────────────┴────────────────────────────┐
-         │ If safe                                                │
-         │   → Return [Generated Response]                        │
-         │ If rude                                                │
-         │   → Reflex Generator (takes response as input)         │
-         │        ↓                                               │
-         │   → Generate [Apology/Correction]                      │
-         │   → Return: [Generated Response + Correction]          │
-         └────────────────────────────────────────────────────────┘
+      Send output to VTube Studio / UI / Speech TTS
 
+```
+# Model Output Format
+
+Normal response:
+```
+Input:
+"What is your name?"
+
+Output:
+{
+  "output": "My name is josh!",
+  "emotion": "Excited",
+  "motion": { "expression": "excited", "intensity": 0.8 },
+  "toggles": { "sweat": False,"Excited":True }
+}
+
+```
+
+---
+
+Reflex response:
+
+```
+Input:
+"You made a mistake!"
+
+Output:
+{
+  "output": "I'm sorry, that was rude of me.",
+  "emotion": "ashamed",
+  "motion": { "expression": "sad", "intensity": 0.8 },
+  "toggles": { "sweat": true }
+}
 ```
