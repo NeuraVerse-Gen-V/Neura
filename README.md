@@ -112,6 +112,8 @@ Update Inference Pipeline
       Send output to VTube Studio / UI / Speech TTS
 
 ```
+
+---
 # Model Output Format
 
 Normal response:
@@ -129,8 +131,6 @@ Output:
 
 ```
 
----
-
 Reflex response:
 
 ```
@@ -144,4 +144,30 @@ Output:
   "motion": { "expression": "sad", "intensity": 0.8 },
   "toggles": { "sweat": true }
 }
+```
+
+---
+# Ideal HyperParams
+
+```
+# General
+learning_rate      = 3e-4
+weight_decay       = 0.01
+warmup_steps       = 500
+num_epochs         = 3–5
+batch_size         = 4  # increase if enough VRAM
+
+# Gradient
+gradient_accumulation_steps = 4  # simulates bigger batch
+
+# Model
+max_seq_len        = 256–512
+vocab_size         = len(tokenizer.vocab)
+embedding_dim      = 256 or 512
+num_layers         = 6–8
+num_heads          = 4–8
+
+# Optimization
+scheduler          = "cosine"
+fp16               = True (if GPU)
 ```
