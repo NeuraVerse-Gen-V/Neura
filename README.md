@@ -71,10 +71,25 @@ This repository contains the AI chatbot project developed for the 2nd year exhib
                                 │
 [Text Input] ─► BPE Tokenizer ─► Text Encoder ─┐
                                               │
-                     ┌────────────────────────┘
-                     │  Fusion Module (optional)
+[User Emotion ID] ─► Emotion Embedding ───────┤
+[Bot Emotion ID ] ─► Emotion Embedding ───────┘
+                     ↓
+           Fusion Module / Attention
                      ↓
                   Decoder
                      ↓
-             [Generated Response]
+             [Generated Response] ──┐
+                                    ↓
+                      Response Classifier (Toxic/Rude?)
+                                    ↓
+         ┌──────────────────────────┴────────────────────────────┐
+         │ If safe                                                │
+         │   → Return [Generated Response]                        │
+         │ If rude                                                │
+         │   → Reflex Generator (takes response as input)         │
+         │        ↓                                               │
+         │   → Generate [Apology/Correction]                      │
+         │   → Return: [Generated Response + Correction]          │
+         └────────────────────────────────────────────────────────┘
+
 ```
