@@ -1,25 +1,28 @@
-# Configuration for the model training, and inference parameters
-training = {
-    "learning_rate": 3e-4,
-    "weight_decay": 0.01,
-    "warmup_steps": 500,
-    "num_epochs": 5,
-    "batch_size": 4,
-    "gradient_accumulation_steps": 4,
-    "max_seq_len": 512,
-    "embedding_dim": 512,
-    "num_layers": 6,
-    "num_heads": 8,
-    "fp16": True,
-    "scheduler": "cosine"
-}
+batch_size = 128
+max_len = 256
+d_model = 512
+n_layers = 6
+n_heads = 8
+ffn_hidden = 2048
+drop_prob = 0.1
+init_lr = 0.1
+factor = 0.9
+patience = 10
+warmup = 100
+adam_eps = 5e-9
+epoch = 1000
+clip = 1
+weight_decay = 5e-4
 
-inference = {
-    "max_length": 256,
-    "do_sample": True,
-    "top_k": 50,
-    "top_p": 0.9,
-    "temperature": 0.8,
-    "repetition_penalty": 1.1,
-    "num_return_sequences": 1
-}
+#dynamic parameters
+import json
+import torch
+with open("../model/vocab.json", "r") as f:
+    vocab = json.load(f)
+src_pad_idx = vocab["<pad>"]
+trg_pad_idx = vocab["<pad>"]
+trg_sos_idx = vocab["<sos>"]
+
+enc_voc_size = len(vocab)
+dec_voc_size = len(vocab)
+device = "cuda" if torch.cuda.is_available() else "cpu"
