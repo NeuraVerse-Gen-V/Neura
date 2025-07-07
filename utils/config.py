@@ -17,7 +17,7 @@ weight_decay = 5e-4
 #dynamic parameters
 import json
 import torch
-with open("../model/vocab.json", "r") as f:
+with open("vocab.json", "r") as f:
     vocab = json.load(f)
 src_pad_idx = vocab["<pad>"]
 trg_pad_idx = vocab["<pad>"]

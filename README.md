@@ -59,6 +59,7 @@ Update Inference Pipeline
 ```
 /PROJECT_EXHIBITION
 ├── main.py                     # Main controller
+├── trainer.py                  # Used to train the model
 ├── model/
 │   ├── transformer.py          # Encoder-decoder model
 |   ├── vision_encoder.py       # ViT or CNN encoder for image → embedding

@@ -44,3 +44,5 @@ criterion = nn.CrossEntropyLoss(ignore_index=src_pad_idx)
 
 #load up data.csv for training
 data=dataloader.load_data("utils/datasets/emotions_dataset.csv")
+
+#train the model then eval it and then save the best model

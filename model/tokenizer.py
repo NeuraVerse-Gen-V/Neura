@@ -3,9 +3,11 @@ import ast
 
 class BPETokenizer():
 
+    def __init__(self,vocab_path):
+        self.vocab_path=vocab_path
     def encode(self, text):
         #split text into words then words into pairs of tokens and then encode them using the pre-trained BPE tokenizer
-        with open("vocab.json", "r" ,encoding="utf-8") as f:
+        with open(self.vocab_path, "r" ,encoding="utf-8") as f:
             vocab = json.load(f)
         
         # Convert text to byte-level token IDs
@@ -32,7 +34,7 @@ class BPETokenizer():
         return token_ids
 
     def decode(self, token_ids):
-        with open("vocab.json", "r", encoding="utf-8") as f:
+        with open(self.vocab_path, "r", encoding="utf-8") as f:
             vocab = json.load(f)
 
         # Reverse the vocab: token_id -> token_str (which may be a tuple string)
