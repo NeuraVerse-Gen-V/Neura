@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-
 """
 ______Transformer Model Components______
 
@@ -16,8 +15,10 @@ Encoder layer
 Encoder
 Decoder layer
 Decoder
+Transformer embedding
 
 """
+
 
 class PositionalEncoding(nn.Module):
     """
@@ -115,7 +116,7 @@ class ScaledDotProductAttention(nn.Module):
         super(ScaledDotProductAttention, self).__init__()
         self.softmax = nn.Softmax(dim=-1)
     
-    def forward(self,q,k,v,mask=None):
+    def forward(self,q,k,v,mask=None,e=1e-12):
         batch_size,head,lenght,d_tensor=k.size()
         #calculate similarity
         k_transpose=k.transpose(2,3)
@@ -151,19 +152,141 @@ class LayerNorm(nn.Module):
 
 
 class PositionwiseFeedForward(nn.Module):
-    pass # Placeholder for position-wise feed forward network implementation
+    def __init__(self, d_model, hidden, drop_prob=0.1):
+        super(PositionwiseFeedForward, self).__init__()
+        self.linear1 = nn.Linear(d_model, hidden)
+        self.linear2 = nn.Linear(hidden, d_model)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(p=drop_prob)
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.linear2(x)
+        return x
 
 class EncoderLayer(nn.Module):
-    pass # Placeholder for encoder layer implementation
+    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
+        super(EncoderLayer, self).__init__()
+        self.attention = MultiHeadAttention(d_model=d_model, n_head=n_head)
+        self.norm1 = LayerNorm(d_model=d_model)
+        self.dropout1 = nn.Dropout(p=drop_prob)
 
-class Encoder(nn.Module):
-    pass # Placeholder for encoder implementation
+        self.ffn = PositionwiseFeedForward(d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
+        self.norm2 = LayerNorm(d_model=d_model)
+        self.dropout2 = nn.Dropout(p=drop_prob)
+
+    def forward(self, x, src_mask):
+        # 1. compute self attention
+        residual_x = x
+        x = self.attention(q=x, k=x, v=x, mask=src_mask)
+        
+        # 2. add and norm
+        x = self.dropout1(x)
+        x = self.norm1(x + residual_x)
+        
+        # 3. positionwise feed forward network
+        residual_x = x
+        x = self.ffn(x)
+      
+        # 4. add and norm
+        x = self.dropout2(x)
+        x = self.norm2(x + residual_x)
+        return x
 
 class DecoderLayer(nn.Module):
-    pass # Placeholder for decoder layer implementation
+    def __init__(self, d_model, ffn_hidden, n_head, drop_prob):
+        super(DecoderLayer, self).__init__()
+        self.self_attention = MultiHeadAttention(d_model=d_model, n_head=n_head)
+        self.norm1 = LayerNorm(d_model=d_model)
+        self.dropout1 = nn.Dropout(p=drop_prob)
+
+        self.enc_dec_attention = MultiHeadAttention(d_model=d_model, n_head=n_head)
+        self.norm2 = LayerNorm(d_model=d_model)
+        self.dropout2 = nn.Dropout(p=drop_prob)
+
+        self.ffn = PositionwiseFeedForward(d_model=d_model, hidden=ffn_hidden, drop_prob=drop_prob)
+        self.norm3 = LayerNorm(d_model=d_model)
+        self.dropout3 = nn.Dropout(p=drop_prob)
+
+    def forward(self, dec, enc, trg_mask, src_mask):    
+        # 1. compute self attention
+        residual_x = dec
+        x = self.self_attention(q=dec, k=dec, v=dec, mask=trg_mask)
+        
+        # 2. add and norm
+        x = self.dropout1(x)
+        x = self.norm1(x + residual_x)
+
+        if enc is not None:
+            # 3. compute encoder - decoder attention
+            residual_x = x
+            x = self.enc_dec_attention(q=x, k=enc, v=enc, mask=src_mask)
+            
+            # 4. add and norm
+            x = self.dropout2(x)
+            x = self.norm2(x + residual_x)
+
+        # 5. positionwise feed forward network
+        residual_x = x
+        x = self.ffn(x)
+        
+        # 6. add and norm
+        x = self.dropout3(x)
+        x = self.norm3(x + residual_x)
+        return x
+
+class Encoder(nn.Module):
+
+    def __init__(self, enc_voc_size, max_len, d_model, ffn_hidden, n_head, n_layers, drop_prob, device):
+        super().__init__()
+        self.emb = TransformerEmbedding(d_model=d_model,
+                                        max_len=max_len,
+                                        vocab_size=enc_voc_size,
+                                        drop_prob=drop_prob,
+                                        device=device)
+
+        self.layers = nn.ModuleList([EncoderLayer(d_model=d_model,
+                                                  ffn_hidden=ffn_hidden,
+                                                  n_head=n_head,
+                                                  drop_prob=drop_prob)
+                                     for _ in range(n_layers)])
+
+    def forward(self, x, src_mask):
+        x = self.emb(x)
+
+        for layer in self.layers:
+            x = layer(x, src_mask)
+
+        return x
 
 class Decoder(nn.Module):
-    pass # Placeholder for decoder implementation
+    def __init__(self, dec_voc_size, max_len, d_model, ffn_hidden, n_head, n_layers, drop_prob, device):
+        super().__init__()
+        self.emb = TransformerEmbedding(d_model=d_model,
+                                        drop_prob=drop_prob,
+                                        max_len=max_len,
+                                        vocab_size=dec_voc_size,
+                                        device=device)
+
+        self.layers = nn.ModuleList([DecoderLayer(d_model=d_model,
+                                                  ffn_hidden=ffn_hidden,
+                                                  n_head=n_head,
+                                                  drop_prob=drop_prob)
+                                     for _ in range(n_layers)])
+
+        self.linear = nn.Linear(d_model, dec_voc_size)
+
+    def forward(self, trg, src, trg_mask, src_mask):
+        trg = self.emb(trg)
+
+        for layer in self.layers:
+            trg = layer(trg, src, trg_mask, src_mask)
+
+        # pass to LM head
+        output = self.linear(trg)
+        return output
 
 class Transformer(nn.Module):
     pass # Placeholder for the Transformer model implementation
