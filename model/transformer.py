@@ -55,9 +55,9 @@ class PositionalEncoding(nn.Module):
         # it will add with tok_emb : [batch_size, seq_len, d_model] 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, n_heads):
+    def __init__(self, d_model, n_head):
         super(MultiHeadAttention, self).__init__()
-        self.n_heads = n_heads
+        self.n_heads = n_head
         self.attention = ScaledDotProductAttention()
 
         self.w_q = nn.Linear(d_model, d_model)
