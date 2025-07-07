@@ -65,9 +65,9 @@ class MultiHeadAttention(nn.Module):
         self.w_v = nn.Linear(d_model, d_model)
         self.w_concat = nn.Linear(d_model, d_model)
 
-    def forward(self, query, key, value, mask=None):
+    def forward(self, q, k, v, mask=None):
         #calculate dot product with weight matrixes
-        q,k,v=self.w_q(query), self.w_k(key), self.w_v(value)
+        q,k,v=self.w_q(q), self.w_k(k), self.w_v(v)
 
         #split into tensors by n_heads
         q,k,v=self.split(q), self.split(k), self.split(v)
@@ -75,7 +75,7 @@ class MultiHeadAttention(nn.Module):
         #compute similarity
         out,attention= self.attention(q, k, v, mask=mask)
 
-        out=self.concat()
+        out=self.concat(out)
         out=self.w_concat(out)
 
         return out
@@ -348,3 +348,30 @@ class Transformer(nn.Module):
         trg_sub_mask = torch.tril(torch.ones(trg_len, trg_len)).type(torch.ByteTensor).to(self.device)
         trg_mask = trg_pad_mask & trg_sub_mask
         return trg_mask
+    
+    @torch.no_grad
+    def generate(self,inp_tokens,max_len=50):
+        
+        src_mask = self.make_src_mask(inp_tokens)
+
+        # Start target sequence with <sos>
+        trg_indices = [self.trg_sos_idx]
+        for _ in range(max_len):
+            trg_tensor = torch.tensor(trg_indices, dtype=torch.long, device=self.device).unsqueeze(0)
+            trg_mask = self.make_trg_mask(trg_tensor)
+
+            # Forward pass
+            enc_src = self.encoder(inp_tokens, src_mask)
+            output = self.decoder(trg_tensor, enc_src, trg_mask, src_mask)
+            # Get logits for last token
+            last_token_logits = output[:, -1, :]  # Shape: [batch, vocab_size]
+            next_token = last_token_logits.argmax(-1).item()
+
+            # Stop if <pad> or <eos> (if you have <eos>)
+            if next_token == self.trg_pad_idx:
+                break
+            trg_indices.append(next_token)
+
+        # Remove <sos> and decode
+        output_tokens = trg_indices[1:]
+        return output_tokens

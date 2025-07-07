@@ -67,5 +67,12 @@ class BPETokenizer():
 
             return result
 
-        decoded = "".join(resolve_token(token_ids))
+        decoded = ""
+        resolved_tokens=resolve_token(token_ids)
+        for token in resolved_tokens:
+            if isinstance(token,str):
+                decoded+=token
+            else:
+                decoded+=str(token)
+        
         return decoded
