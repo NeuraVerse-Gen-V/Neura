@@ -1,12 +1,13 @@
 from model.transformer import Transformer
-from model.tokenizer import BPETokenizer
 
 from utils.config import *
+from utils import dataloader
+
 import torch.nn as nn
 from torch.optim import Adam
 import torch.optim as optim
+
 from tqdm import tqdm
-from utils import dataloader
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -28,7 +29,7 @@ model = Transformer(src_pad_idx=src_pad_idx,
                     drop_prob=drop_prob,
                     device=device).to(device)
 
-print(f'The model has {count_parameters(model):,} trainable parameters')
+
 
 model.apply(initialize_weights)
 
@@ -48,17 +49,18 @@ data=dataloader.load_data("utils/datasets/emotions_dataset.csv")
 #convert loaded data into tensors
 input_labels=data["input"]
 output_labels=data["output"]
-tokenizer = BPETokenizer("model/vocab.json")
-inp=[]
-out=[]
-for a in tqdm(input_labels,desc="Encoding input labels"):
-    inp.append(tokenizer.encode(a))
 
-for a in tqdm(output_labels,desc="Encoding output labels"):
-    inp.append(tokenizer.encode(a))
+def train(input,output):
+    pass #Training logic goes here
 
-inp_tensor=torch.tensor(inp)
-out_tensor=torch.tensor(out)
-#train the model then eval it and then save the best model
+def evaluate():
+    pass #Evaluation logic goes here
 
-#Kirti do it, data will be in (input,output) format in a csv/excel file
+if __name__=="__main__":
+    print(f'The model has {count_parameters(model):,} trainable parameters')
+    inp_tensor,out_tensor=dataloader.tensorize(input_labels=input_labels,output_labels=output_labels)
+    
+    #train the model then eval it and then save the best model
+    trained_model=train(inp_tensor,out_tensor)
+    evaluate(trained_model)
+    #Kirti do it, data will be in (input,output) format in a csv/excel file
