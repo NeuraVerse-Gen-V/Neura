@@ -12,13 +12,13 @@ scaled dot product attention
 Layer norm
 Position-wise feed forward network
 Encoder layer
-Encoder
 Decoder layer
+TransformerEmbedding
+Encoder
 Decoder
-Transformer embedding
+
 
 """
-
 
 class PositionalEncoding(nn.Module):
     """
@@ -150,7 +150,6 @@ class LayerNorm(nn.Module):
 
         return out
 
-
 class PositionwiseFeedForward(nn.Module):
     def __init__(self, d_model, hidden, drop_prob=0.1):
         super(PositionwiseFeedForward, self).__init__()
@@ -236,6 +235,23 @@ class DecoderLayer(nn.Module):
         x = self.dropout3(x)
         x = self.norm3(x + residual_x)
         return x
+
+class TransformerEmbedding(nn.Module):
+    """
+    Embedding layer for transformer
+    """
+
+    def __init__(self, d_model, max_len, vocab_size, drop_prob=0.1, device='cpu'):
+        super(TransformerEmbedding, self).__init__()
+        self.tok_emb = nn.Embedding(vocab_size, d_model)
+        self.pos_emb = PositionalEncoding(d_model=d_model, max_len=max_len, device=device)
+        self.dropout = nn.Dropout(p=drop_prob)
+
+    def forward(self, x):
+        # x is the input token ids
+        tok_emb = self.tok_emb(x)  # [batch_size, seq_len, d_model]
+        pos_emb = self.pos_emb(x)   # [seq_len, d_model]
+        return self.dropout(tok_emb + pos_emb)
 
 class Encoder(nn.Module):
 
