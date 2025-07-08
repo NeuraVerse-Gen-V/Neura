@@ -53,7 +53,7 @@ output_labels=data["output"]
 def train(input,output):
     pass #Training logic goes here
 
-def evaluate():
+def evaluate(input):
     pass #Evaluation logic goes here
 
 if __name__=="__main__":
