@@ -14,10 +14,10 @@ model=Transformer(src_pad_idx,trg_pad_idx,trg_sos_idx,enc_voc_size,dec_voc_size,
 model.eval()
 
 def generate():
-    input="hi, how are you doing today?"    
+    input="hi"    
     inp_tokens = torch.tensor(tokenizer.encode(input), dtype=torch.long, device=device).unsqueeze(0)
     
-    out=model.generate(inp_tokens)
+    out=model.generate(inp_tokens,max_len=256)
     output_text = tokenizer.decode(out)
     return output_text
 
