@@ -27,6 +27,7 @@ with open("model/vocab.json", "r") as f:
 src_pad_idx = vocab["<pad>"]
 trg_pad_idx = vocab["<pad>"]
 trg_sos_idx = vocab["<sos>"]
+eos_token   = vocab["<eos>"]
 
 enc_voc_size = len(vocab)
 dec_voc_size = len(vocab)

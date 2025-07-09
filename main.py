@@ -9,7 +9,7 @@ from utils.config import *
 import time
 
 tokenizer=BPETokenizer("model/vocab.json")
-model=Transformer(src_pad_idx,trg_pad_idx,trg_sos_idx,enc_voc_size,dec_voc_size,d_model,n_heads,max_len,ffn_hidden,n_layers,drop_prob,device)
+model=Transformer(src_pad_idx,trg_pad_idx,trg_sos_idx,eos_token,enc_voc_size,dec_voc_size,d_model,n_heads,max_len,ffn_hidden,n_layers,drop_prob,device)
 #model.load_state_dict(torch.load("model/transformer_weights.pth", map_location=device))
 model.eval()
 

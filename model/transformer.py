@@ -306,12 +306,13 @@ class Decoder(nn.Module):
 
 class Transformer(nn.Module):
 
-    def __init__(self, src_pad_idx, trg_pad_idx, trg_sos_idx, enc_voc_size, dec_voc_size, d_model, n_head, max_len,
+    def __init__(self, src_pad_idx, trg_pad_idx, trg_sos_idx,eos_token_id, enc_voc_size, dec_voc_size, d_model, n_head, max_len,
                  ffn_hidden, n_layers, drop_prob, device):
         super().__init__()
         self.src_pad_idx = src_pad_idx
         self.trg_pad_idx = trg_pad_idx
         self.trg_sos_idx = trg_sos_idx
+        self.eos_token   = eos_token_id
         self.device = device
         self.encoder = Encoder(d_model=d_model,
                                n_head=n_head,
@@ -368,7 +369,7 @@ class Transformer(nn.Module):
             next_token = last_token_logits.argmax(-1).item()
 
             # Stop if <pad> or <eos> (if you have <eos>)
-            if next_token == self.trg_pad_idx:
+            if next_token == self.eos_token:
                 break
             trg_indices.append(next_token)
 
