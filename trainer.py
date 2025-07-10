@@ -50,8 +50,8 @@ criterion = nn.CrossEntropyLoss(ignore_index=src_pad_idx)
 #load up data.csv for training
 data=dataloader.load_data("utils/datasets/emotions_dataset.csv")
 #convert loaded data into tensors
-input_labels=data["input"]
-output_labels=data["output"]
+input_labels=data["input"][:10]
+output_labels=data["output"][:10]
 
 
 def get_linear_warmup_scheduler(optimizer, warmup_steps):
@@ -86,7 +86,7 @@ def train(input_tensor, output_tensor):
             src, trg = src.to(device), trg.to(device)
 
             optimizer.zero_grad()
-            output = model(src)
+            output = model(src,trg)
             loss = criterion(output.view(-1, output.size(-1)), trg.view(-1))
             loss.backward()
 
