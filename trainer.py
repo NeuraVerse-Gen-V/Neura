@@ -50,8 +50,8 @@ criterion = nn.CrossEntropyLoss(ignore_index=src_pad_idx)
 #load up data.csv for training
 data=dataloader.load_data("utils/datasets/emotions_dataset.csv")
 #convert loaded data into tensors
-input_labels=data["input"][:10]
-output_labels=data["output"][:10]
+input_labels=data["input"][:500]
+output_labels=data["output"][:500]
 
 
 def get_linear_warmup_scheduler(optimizer, warmup_steps):
@@ -65,7 +65,7 @@ def train(input_tensor, output_tensor):
 
     dataset = TensorDataset(input_tensor, output_tensor)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-
+    print(loader)
     optimizer = Adam(params=model.parameters(),
                      lr=init_lr,
                      weight_decay=weight_decay,
@@ -115,17 +115,17 @@ def train(input_tensor, output_tensor):
             if no_improve_epochs > patience:
                 print("Early stopping triggered.")
                 break
-
+    
+    torch.save(model.state_dict(), "model.pt")
     return model
 
 
 
-def evaluate(model):
+def evaluate(model,src,trg):
     model.to(device)
     model.eval()
     with torch.no_grad():
-        sample = torch.randint(1, enc_voc_size, (1, max_len)).to(device)
-        output = model(sample)
+        output = model(src,trg)
         prediction = output.argmax(dim=-1)
         print("Sample output token IDs:", prediction[0].tolist())
 
@@ -136,4 +136,4 @@ if __name__=="__main__":
     
     #train the model then eval it and then save the best model
     trained_model=train(inp_tensor,out_tensor)
-    evaluate(trained_model)
+    evaluate(trained_model,inp_tensor,out_tensor)
