@@ -236,6 +236,21 @@ class DecoderLayer(nn.Module):
         x = self.norm3(x + residual_x)
         return x
 
+class TokenEmbedding(nn.Embedding):
+    """
+    Token Embedding using torch.nn
+    they will dense representation of word using weighted matrix
+    """
+
+    def __init__(self, vocab_size, d_model):
+        """
+        class for token embedding that included positional information
+
+        :param vocab_size: size of vocabulary
+        :param d_model: dimensions of model
+        """
+        super(TokenEmbedding, self).__init__(vocab_size, d_model, padding_idx=20257)
+
 class TransformerEmbedding(nn.Module):
     """
     Embedding layer for transformer
@@ -243,7 +258,7 @@ class TransformerEmbedding(nn.Module):
 
     def __init__(self, d_model, max_len, vocab_size, drop_prob=0.1, device='cpu'):
         super(TransformerEmbedding, self).__init__()
-        self.tok_emb = nn.Embedding(vocab_size, d_model)
+        self.tok_emb = TokenEmbedding(vocab_size, d_model)
         self.pos_emb = PositionalEncoding(d_model=d_model, max_len=max_len, device=device)
         self.dropout = nn.Dropout(p=drop_prob)
 
