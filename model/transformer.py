@@ -124,7 +124,7 @@ class ScaledDotProductAttention(nn.Module):
 
         #used to hide the future tokens in decoder
         if mask is not None:
-            score=score.masked_fill(mask==0,float('-inf'))
+            score = score.masked_fill(mask == 0, -1e9)
         
         #set values to 0 or 1
         score=self.softmax(score)
@@ -237,28 +237,18 @@ class DecoderLayer(nn.Module):
         return x
 
 class TokenEmbedding(nn.Embedding):
-    """
-    Token Embedding using torch.nn
-    they will dense representation of word using weighted matrix
-    """
+    def __init__(self, vocab_size, d_model, padding_idx):
+        super().__init__(vocab_size, d_model, padding_idx=padding_idx)
 
-    def __init__(self, vocab_size, d_model):
-        """
-        class for token embedding that included positional information
-
-        :param vocab_size: size of vocabulary
-        :param d_model: dimensions of model
-        """
-        super(TokenEmbedding, self).__init__(vocab_size, d_model, padding_idx=20257)
 
 class TransformerEmbedding(nn.Module):
     """
     Embedding layer for transformer
     """
 
-    def __init__(self, d_model, max_len, vocab_size, drop_prob=0.1, device='cpu'):
+    def __init__(self, d_model, max_len, vocab_size,padding_idx, drop_prob=0.1, device='cpu'):
         super(TransformerEmbedding, self).__init__()
-        self.tok_emb = TokenEmbedding(vocab_size, d_model)
+        self.tok_emb = TokenEmbedding(vocab_size, d_model, padding_idx=padding_idx)
         self.pos_emb = PositionalEncoding(d_model=d_model, max_len=max_len, device=device)
         self.dropout = nn.Dropout(p=drop_prob)
 
@@ -270,9 +260,10 @@ class TransformerEmbedding(nn.Module):
 
 class Encoder(nn.Module):
 
-    def __init__(self, enc_voc_size, max_len, d_model, ffn_hidden, n_head, n_layers, drop_prob, device):
+    def __init__(self, enc_voc_size, max_len, d_model,src_pad_idx, ffn_hidden, n_head, n_layers, drop_prob, device):
         super().__init__()
         self.emb = TransformerEmbedding(d_model=d_model,
+                                        padding_idx=src_pad_idx,
                                         max_len=max_len,
                                         vocab_size=enc_voc_size,
                                         drop_prob=drop_prob,
@@ -293,9 +284,10 @@ class Encoder(nn.Module):
         return x
 
 class Decoder(nn.Module):
-    def __init__(self, dec_voc_size, max_len, d_model, ffn_hidden, n_head, n_layers, drop_prob, device):
+    def __init__(self, dec_voc_size, max_len, d_model, ffn_hidden,src_pad_idx, n_head, n_layers, drop_prob, device):
         super().__init__()
         self.emb = TransformerEmbedding(d_model=d_model,
+                                        padding_idx=src_pad_idx,
                                         drop_prob=drop_prob,
                                         max_len=max_len,
                                         vocab_size=dec_voc_size,
@@ -331,6 +323,7 @@ class Transformer(nn.Module):
         self.device = device
         self.encoder = Encoder(d_model=d_model,
                                n_head=n_head,
+                               src_pad_idx=src_pad_idx,
                                max_len=max_len,
                                ffn_hidden=ffn_hidden,
                                enc_voc_size=enc_voc_size,
@@ -340,6 +333,7 @@ class Transformer(nn.Module):
 
         self.decoder = Decoder(d_model=d_model,
                                n_head=n_head,
+                               src_pad_idx=src_pad_idx,
                                max_len=max_len,
                                ffn_hidden=ffn_hidden,
                                dec_voc_size=dec_voc_size,
@@ -359,11 +353,14 @@ class Transformer(nn.Module):
         return src_mask
 
     def make_trg_mask(self, trg):
-        trg_pad_mask = (trg != self.trg_pad_idx).unsqueeze(1).unsqueeze(3)
-        trg_len = trg.shape[1]
-        trg_sub_mask = torch.tril(torch.ones(trg_len, trg_len)).type(torch.ByteTensor).to(self.device)
-        trg_mask = trg_pad_mask & trg_sub_mask
+        trg_len = trg.size(1)  # fix for 3D input
+
+        trg_pad_mask = (trg != self.trg_pad_idx).unsqueeze(1).unsqueeze(2)  # [B, 1, 1, L]
+        trg_sub_mask = torch.tril(torch.ones((trg_len, trg_len), device=self.device)).bool()  # [L, L]
+        trg_sub_mask = trg_sub_mask.unsqueeze(0).unsqueeze(0)  # [1, 1, L, L]
+        trg_mask = trg_pad_mask & trg_sub_mask  # [B, 1, L, L]
         return trg_mask
+
     
     @torch.no_grad
     def generate(self,inp_tokens,max_len=50):
