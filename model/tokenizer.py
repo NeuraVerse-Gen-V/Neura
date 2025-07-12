@@ -11,7 +11,7 @@ class BPETokenizer():
             vocab = json.load(f)
         
         # Convert text to byte-level token IDs
-        token_ids = [a if ord(a)<256 else vocab["<unk>"] for a in text.encode("utf-8")]
+        token_ids = [a if a<256 else vocab["<unk>"] for a in text.encode("utf-8")]
 
         # Keep merging pairs while possible
         while True:
