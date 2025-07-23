@@ -1,8 +1,8 @@
 ---
 
-# Project Exhibition
+# Neura
 
-This repository contains the AI chatbot project developed for the 2nd year exhibition.
+This repository contains the AI Vtuber named Neura
 
 ---
 
