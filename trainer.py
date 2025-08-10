@@ -115,13 +115,13 @@ early_stopper = EarlyStopper(patience=patience, min_delta=0.001)
 criterion = nn.CrossEntropyLoss(ignore_index=src_pad_idx)
 
 #load up data.csv for training
-data=dataloader.load_data("utils/datasets/emotions_dataset.csv")
+data=dataloader.load_data("utils/datasets/data.csv")
 if data is None:
     raise ValueError("Failed to load training data")
     
 #convert loaded data into tensors
-input_labels=data["input"]
-output_labels=data["output"]
+input_labels=data["input"][:1000]
+output_labels=data["output"][:1000]
 
 # Validate data
 if len(input_labels) != len(output_labels):
