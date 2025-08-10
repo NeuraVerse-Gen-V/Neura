@@ -4,14 +4,15 @@ import ast
 class BPETokenizer():
 
     def __init__(self,vocab_path):
-        self.vocab_path=vocab_path
+        with open(vocab_path, "r" ,encoding="utf-8") as f:
+            self.vocab = json.load(f)
+
     def encode(self, text):
         #split text into words then words into pairs of tokens and then encode them using the pre-trained BPE tokenizer
-        with open(self.vocab_path, "r" ,encoding="utf-8") as f:
-            vocab = json.load(f)
+        
         
         # Convert text to byte-level token IDs
-        token_ids = [a if a<256 else vocab["<unk>"] for a in text.encode("utf-8")]
+        token_ids = [a if a<256 else self.vocab["<unk>"] for a in text.encode("utf-8")]
 
         # Keep merging pairs while possible
         while True:
@@ -21,8 +22,8 @@ class BPETokenizer():
                 pair = (token_ids[i], token_ids[i+1])
                 pair_str = str(pair)
 
-                if pair_str in vocab:
-                    token_ids[i] = vocab[pair_str]
+                if pair_str in self.vocab:
+                    token_ids[i] = self.vocab[pair_str]
                     del token_ids[i+1]
                     merged = True
                 else:
@@ -34,11 +35,9 @@ class BPETokenizer():
         return token_ids
 
     def decode(self, token_ids):
-        with open(self.vocab_path, "r", encoding="utf-8") as f:
-            vocab = json.load(f)
 
         # Reverse the vocab: token_id -> token_str (which may be a tuple string)
-        reverse_vocab = {int(v): k for k, v in vocab.items()}
+        reverse_vocab = {int(v): k for k, v in self.vocab.items()}
 
         def resolve_token(token):
             result = []
