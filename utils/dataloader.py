@@ -22,7 +22,7 @@ def encode_text(args):
     return tokenizer.encode(text)
 
 def tensorize(input_labels, output_labels):
-    tokenizer_path = "model/vocab.json"
+    tokenizer_path = "gpt2"
     # Prepare arguments as tuples (tokenizer_path, text)
     input_args = [(tokenizer_path, x) for x in input_labels]
     output_args = [(tokenizer_path, x) for x in output_labels]

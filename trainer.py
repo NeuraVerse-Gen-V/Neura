@@ -5,6 +5,8 @@ from utils import dataloader
 
 import torch
 import torch.nn as nn
+import json
+
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -115,7 +117,7 @@ early_stopper = EarlyStopper(patience=patience, min_delta=0.001)
 criterion = nn.CrossEntropyLoss(ignore_index=src_pad_idx)
 
 #load up data.csv for training
-data=dataloader.load_data("utils/datasets/data.csv")
+data=dataloader.load_data("utils/datasets/small_data.csv")
 if data is None:
     raise ValueError("Failed to load training data")
     
@@ -204,7 +206,7 @@ def train_and_evaluate(model, input_tensor, output_tensor, clip, num_epochs=None
         
         print(f'Epoch {epoch_idx+1}/{num_epochs} - Train Loss: {avg_train_loss:.4f} - Val Loss: {avg_val_loss:.4f} - LR: {current_lr:.6f}')
         
-        logs[epoch_idx+1]={"train":avg_train_loss,"val":avg_val_loss,"lr":current_lr}
+        logs[str(epoch_idx+1)]={"train":avg_train_loss,"val":avg_val_loss,"lr":current_lr}
         with open("utils/log.json","w") as wi:
             json.dump(logs,wi,indent=4)
         # Save best model based on validation loss
