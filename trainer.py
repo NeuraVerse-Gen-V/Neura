@@ -122,8 +122,8 @@ if data is None:
     raise ValueError("Failed to load training data")
     
 #convert loaded data into tensors
-input_labels=data["input"][:1000]
-output_labels=data["output"][:1000]
+input_labels=data["input"][:5000]
+output_labels=data["output"][:5000]
 
 # Validate data
 if len(input_labels) != len(output_labels):
@@ -238,7 +238,7 @@ def train_and_evaluate(model, input_tensor, output_tensor, clip, num_epochs=None
 if __name__=="__main__":
     print(f'The model has {count_parameters(model):,} trainable parameters')
     inp_tensor,out_tensor=dataloader.tensorize(input_labels=input_labels,output_labels=output_labels)
-    
+    print(inp_tensor,out_tensor)
     # Train and evaluate the model with validation-based early stopping
     trained_model = train_and_evaluate(model=model, input_tensor=inp_tensor, output_tensor=out_tensor, clip=clip)
     

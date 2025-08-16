@@ -2,7 +2,7 @@ import torch
 from transformers import AutoTokenizer
 
 # ==================== Model Configs ====================
-max_len = 50       # Maximum length of input sequence
+max_len = 256       # Maximum length of input sequence
 d_model = 128        # Model embedding dimension
 n_layers = 4         # Number of transformer layers
 n_heads = 4          # Number of attention heads
@@ -17,7 +17,7 @@ patience = 10        # Early stopping patience
 warmup = 100         # Warm-up steps
 adam_eps = 5e-9      # Adam optimizer epsilon
 epoch = 1000         # Number of training epochs
-clip = 10             # Gradient clipping threshold
+clip = 1             # Gradient clipping threshold
 weight_decay = 5e-4  # L2 regularization (weight decay)
 
 # =================== Tokenizer ===================

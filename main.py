@@ -10,13 +10,13 @@ import time
 
 tokenizer=BPETokenizer("gpt2")
 model=Transformer(src_pad_idx,trg_pad_idx,trg_sos_idx,eos_token,enc_voc_size,dec_voc_size,d_model,n_heads,max_len,ffn_hidden,n_layers,drop_prob,device)
-#model.load_state_dict(torch.load("model.pt", map_location=device))
+model.load_state_dict(torch.load("best_model.pt", map_location=device))
 model.eval()
 
 def generate(input):  
     inp_tokens = torch.tensor(tokenizer.encode(input), dtype=torch.long, device=device).unsqueeze(0)
     
-    out=model.generate(inp_tokens,max_len=50)
+    out=model.generate(inp_tokens,max_len=20)
     output_text = tokenizer.decode(out)
     return output_text
 
@@ -30,7 +30,7 @@ def speak():
     pass #code for TTS goes here
 
 a=time.time()
-output= generate("hi")
+output= generate("who are you?")
 b=time.time()
 print(output)
 
