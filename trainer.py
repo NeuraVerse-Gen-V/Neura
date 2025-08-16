@@ -3,14 +3,20 @@ from model.transformer import Transformer
 from utils.config import *
 from utils import dataloader
 
-import torch
-import torch.nn as nn
-import json
-
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 
 from tqdm import tqdm
+
+import torch
+import torch.nn as nn
+import json
+import os
+
+#load up data.csv for training
+data=dataloader.load_data("utils/datasets/small_data.csv")
+if data is None:
+    raise ValueError("Failed to load training data")
 
 class WarmupScheduler:
     """Custom learning rate scheduler with warmup functionality"""
@@ -80,6 +86,17 @@ def count_parameters(model):
 def initialize_weights(m):
     if hasattr(m, 'weight') and m.weight.dim() > 1:
         nn.init.kaiming_uniform_(m.weight.data)
+    
+#convert loaded data into tensors
+input_labels=data["input"][:10000]
+output_labels=data["output"][:10000]
+
+inp_tensor,out_tensor=dataloader.tensorize(input_labels=input_labels,output_labels=output_labels)
+
+# Validate data
+if len(input_labels) != len(output_labels):
+    raise ValueError(f"Input and output lengths don't match: {len(input_labels)} vs {len(output_labels)}")
+
 
 model = Transformer(src_pad_idx=src_pad_idx,
                     trg_pad_idx=trg_pad_idx,
@@ -88,7 +105,6 @@ model = Transformer(src_pad_idx=src_pad_idx,
                     d_model=d_model,
                     enc_voc_size=enc_voc_size,
                     dec_voc_size=dec_voc_size,
-                    max_len=max_len,
                     ffn_hidden=ffn_hidden,
                     n_head=n_heads,
                     n_layers=n_layers,
@@ -116,18 +132,6 @@ early_stopper = EarlyStopper(patience=patience, min_delta=0.001)
 
 criterion = nn.CrossEntropyLoss(ignore_index=src_pad_idx)
 
-#load up data.csv for training
-data=dataloader.load_data("utils/datasets/small_data.csv")
-if data is None:
-    raise ValueError("Failed to load training data")
-    
-#convert loaded data into tensors
-input_labels=data["input"][:5000]
-output_labels=data["output"][:5000]
-
-# Validate data
-if len(input_labels) != len(output_labels):
-    raise ValueError(f"Input and output lengths don't match: {len(input_labels)} vs {len(output_labels)}")
 
 def train_and_evaluate(model, input_tensor, output_tensor, clip, num_epochs=None, target_val_loss=1.0):
     if num_epochs is None:
@@ -236,12 +240,20 @@ def train_and_evaluate(model, input_tensor, output_tensor, clip, num_epochs=None
     return model
 
 if __name__=="__main__":
+    #load the model weights if available
+    checkpoint_path = "best_model.pt"
+    if os.path.exists(checkpoint_path):
+        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+        print("Loaded checkpoint, continuing training...")
+    else:
+        print("No checkpoint found, starting training from scratch.")
+
     print(f'The model has {count_parameters(model):,} trainable parameters')
-    inp_tensor,out_tensor=dataloader.tensorize(input_labels=input_labels,output_labels=output_labels)
-    print(inp_tensor,out_tensor)
+    #print(inp_tensor,out_tensor)
+    
     # Train and evaluate the model with validation-based early stopping
     trained_model = train_and_evaluate(model=model, input_tensor=inp_tensor, output_tensor=out_tensor, clip=clip)
     
     # Save the final best model
-    torch.save(trained_model.state_dict(), "best_model.pt")
-    print("Best model saved as 'best_model.pt'")
+    torch.save(trained_model.state_dict(), checkpoint_path)
+    print(f"Best model saved as {checkpoint_path}")

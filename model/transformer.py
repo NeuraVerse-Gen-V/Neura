@@ -21,38 +21,24 @@ Decoder
 """
 
 class PositionalEncoding(nn.Module):
-    """
-    Use sinusodial encoding
-    """
+    def __init__(self, d_model, device):
+        super().__init__()
+        self.d_model = d_model
+        self.device = device
 
-    def __init__(self,d_model,max_len,device):
-        """
-        constructor for encoding
-        d_model=dimensions
-        max_len=max sequence lenght
-        device = cuda or cpu
-        """
+    def forward(self, x):
+        # x: [batch_size, seq_len, d_model] or [batch_size, seq_len]
+        batch_size, seq_len = x.size(0), x.size(1)
+        pos = torch.arange(0, seq_len, device=self.device).float().unsqueeze(1)  # [seq_len,1]
+        idx = torch.arange(0, self.d_model, 2, device=self.device).float()       # [d_model/2]
 
-        super(PositionalEncoding,self).__init__()
-        self.encoding=torch.zeros(max_len,d_model,device=device)
-        self.encoding.requires_grad=False #to be tested with true
+        pe = torch.zeros(seq_len, self.d_model, device=self.device)
+        pe[:, 0::2] = torch.sin(pos / (10000 ** (idx / self.d_model)))
+        pe[:, 1::2] = torch.cos(pos / (10000 ** (idx / self.d_model)))
 
-        pos=torch.arange(0,max_len,device=device)
-        pos=pos.float().unsqueeze(dim=1)
-        #unsqueez to convert it from 1d to 2d to repesent words better
+        # expand to batch: [batch_size, seq_len, d_model]
+        return pe.unsqueeze(0).expand(batch_size, -1, -1)
 
-        idx = torch.arange(0,d_model,step=2,device=device).float()
-        #idx is the index of d_model, eg embedding size=50 , idx=[0,50]
-        #step=2 means idx is multiplied by 2
-
-        self.encoding[:,0::2]=torch.sin(pos/10000**(idx/d_model))
-        self.encoding[:,1::2]=torch.cos(pos/10000**(idx/d_model))
-
-    def forward(self,x):
-        #self encoding
-        batch_size,seq_len=x.size()
-        return self.encoding[:seq_len,:]
-        # it will add with tok_emb : [batch_size, seq_len, d_model] 
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, n_head):
@@ -246,10 +232,10 @@ class TransformerEmbedding(nn.Module):
     Embedding layer for transformer
     """
 
-    def __init__(self, d_model, max_len, vocab_size,padding_idx, drop_prob=0.1, device='cpu'):
+    def __init__(self, d_model, vocab_size,padding_idx, drop_prob=0.1, device='cpu'):
         super(TransformerEmbedding, self).__init__()
         self.tok_emb = TokenEmbedding(vocab_size, d_model, padding_idx=padding_idx)
-        self.pos_emb = PositionalEncoding(d_model=d_model, max_len=max_len, device=device)
+        self.pos_emb = PositionalEncoding(d_model=d_model, device=device)
         self.dropout = nn.Dropout(p=drop_prob)
 
     def forward(self, x):
@@ -260,11 +246,10 @@ class TransformerEmbedding(nn.Module):
 
 class Encoder(nn.Module):
 
-    def __init__(self, enc_voc_size, max_len, d_model,src_pad_idx, ffn_hidden, n_head, n_layers, drop_prob, device):
+    def __init__(self, enc_voc_size, d_model,src_pad_idx, ffn_hidden, n_head, n_layers, drop_prob, device):
         super().__init__()
         self.emb = TransformerEmbedding(d_model=d_model,
                                         padding_idx=src_pad_idx,
-                                        max_len=max_len,
                                         vocab_size=enc_voc_size,
                                         drop_prob=drop_prob,
                                         device=device)
@@ -284,12 +269,11 @@ class Encoder(nn.Module):
         return x
 
 class Decoder(nn.Module):
-    def __init__(self, dec_voc_size, max_len, d_model, ffn_hidden,src_pad_idx, n_head, n_layers, drop_prob, device):
+    def __init__(self, dec_voc_size, d_model, ffn_hidden,src_pad_idx, n_head, n_layers, drop_prob, device):
         super().__init__()
         self.emb = TransformerEmbedding(d_model=d_model,
                                         padding_idx=src_pad_idx,
                                         drop_prob=drop_prob,
-                                        max_len=max_len,
                                         vocab_size=dec_voc_size,
                                         device=device)
 
@@ -313,7 +297,7 @@ class Decoder(nn.Module):
 
 class Transformer(nn.Module):
 
-    def __init__(self, src_pad_idx, trg_pad_idx, trg_sos_idx,eos_token_id, enc_voc_size, dec_voc_size, d_model, n_head, max_len,
+    def __init__(self, src_pad_idx, trg_pad_idx, trg_sos_idx,eos_token_id, enc_voc_size, dec_voc_size, d_model, n_head,
                  ffn_hidden, n_layers, drop_prob, device):
         super().__init__()
         self.src_pad_idx = src_pad_idx
@@ -324,7 +308,6 @@ class Transformer(nn.Module):
         self.encoder = Encoder(d_model=d_model,
                                n_head=n_head,
                                src_pad_idx=src_pad_idx,
-                               max_len=max_len,
                                ffn_hidden=ffn_hidden,
                                enc_voc_size=enc_voc_size,
                                drop_prob=drop_prob,
@@ -334,7 +317,6 @@ class Transformer(nn.Module):
         self.decoder = Decoder(d_model=d_model,
                                n_head=n_head,
                                src_pad_idx=src_pad_idx,
-                               max_len=max_len,
                                ffn_hidden=ffn_hidden,
                                dec_voc_size=dec_voc_size,
                                drop_prob=drop_prob,

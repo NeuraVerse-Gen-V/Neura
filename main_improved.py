@@ -6,7 +6,7 @@ from utils.config import *
 import time
 
 tokenizer = BPETokenizer("gpt2")
-model = Transformer(src_pad_idx, trg_pad_idx, trg_sos_idx, eos_token, enc_voc_size, dec_voc_size, d_model, n_heads, max_len, ffn_hidden, n_layers, drop_prob, device)
+model = Transformer(src_pad_idx, trg_pad_idx, trg_sos_idx, eos_token, enc_voc_size, dec_voc_size, d_model, n_heads, ffn_hidden, n_layers, drop_prob, device)
 model.load_state_dict(torch.load("best_model.pt", map_location=device))
 model.to(device)
 model.eval()
@@ -126,7 +126,7 @@ def generate_beam_search(input_text, max_len=50, beam_size=3):
 
 # Test different generation methods
 if __name__ == "__main__":
-    test_input = "Unfortunately later died from eating tainted meat"
+    test_input = "who are you?"
     
     print("=== Testing Different Generation Methods ===")
     print(f"Input: '{test_input}'")
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     a = time.time()
     try:
         inp_tokens = torch.tensor(tokenizer.encode(test_input), dtype=torch.long, device=device).unsqueeze(0)
-        out = model.generate(inp_tokens, max_len=20)
+        out = model.generate(inp_tokens, max_len)
         output = tokenizer.decode(out)
         b = time.time()
         print(f"Output: '{output}'")
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # Method 2: Temperature sampling
     print("2. Temperature Sampling (temp=0.8):")
     a = time.time()
-    output = generate_with_sampling(test_input, max_len=20, temperature=0.8, top_k=50, top_p=0.9)
+    output = generate_with_sampling(test_input, max_len, temperature=0.8, top_k=50, top_p=0.9)
     b = time.time()
     print(f"Output: '{output}'")
     print(f"Time: {b-a:.3f}s")
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     # Method 3: Higher temperature
     print("3. Higher Temperature Sampling (temp=1.2):")
     a = time.time()
-    output = generate_with_sampling(test_input, max_len=20, temperature=1.2, top_k=30, top_p=0.8)
+    output = generate_with_sampling(test_input, max_len, temperature=1.2, top_k=30, top_p=0.8)
     b = time.time()
     print(f"Output: '{output}'")
     print(f"Time: {b-a:.3f}s")
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     # Method 4: Beam search
     print("4. Beam Search (beam_size=3):")
     a = time.time()
-    output = generate_beam_search(test_input, max_len=20, beam_size=3)
+    output = generate_beam_search(test_input, max_len, beam_size=3)
     b = time.time()
     print(f"Output: '{output}'")
     print(f"Time: {b-a:.3f}s")

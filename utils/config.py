@@ -2,7 +2,7 @@ import torch
 from transformers import AutoTokenizer
 
 # ==================== Model Configs ====================
-max_len = 256       # Maximum length of input sequence
+max_len = 256        # Maximum generation length
 d_model = 128        # Model embedding dimension
 n_layers = 4         # Number of transformer layers
 n_heads = 4          # Number of attention heads

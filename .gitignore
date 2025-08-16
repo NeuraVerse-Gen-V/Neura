@@ -1,4 +1,7 @@
 best_model.pt
-model.pt
-data.csv
+
 _pycache_
+
+data.csv
+emotions_dataset.csv
+small_data.csv
