@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-
+from model.vision_encoder import VisionEncoder
 """
 ______Transformer Model Components______
 
@@ -16,7 +16,7 @@ Decoder layer
 TransformerEmbedding
 Encoder
 Decoder
-
+Transformer
 
 """
 
@@ -245,8 +245,7 @@ class TransformerEmbedding(nn.Module):
         return self.dropout(tok_emb + pos_emb)
 
 class Encoder(nn.Module):
-
-    def __init__(self, enc_voc_size, d_model,src_pad_idx, ffn_hidden, n_head, n_layers, drop_prob, device):
+    def __init__(self, enc_voc_size, d_model, src_pad_idx, ffn_hidden, n_head, n_layers, drop_prob, device):
         super().__init__()
         self.emb = TransformerEmbedding(d_model=d_model,
                                         padding_idx=src_pad_idx,
@@ -254,19 +253,27 @@ class Encoder(nn.Module):
                                         drop_prob=drop_prob,
                                         device=device)
 
-        self.layers = nn.ModuleList([EncoderLayer(d_model=d_model,
-                                                  ffn_hidden=ffn_hidden,
-                                                  n_head=n_head,
-                                                  drop_prob=drop_prob)
-                                     for _ in range(n_layers)])
+        self.layers = nn.ModuleList([
+            EncoderLayer(d_model=d_model,
+                         ffn_hidden=ffn_hidden,
+                         n_head=n_head,
+                         drop_prob=drop_prob)
+            for _ in range(n_layers)
+        ])
 
-    def forward(self, x, src_mask):
-        x = self.emb(x)
-
+    def forward(self, src, mask=None, vision_embeds=None):
+        # embed text
+        x = self.emb(src)  # (batch, seq_len, d_model)
+        # concat vision embeddings if provided
+        if vision_embeds is not None:
+            x = torch.cat([x, vision_embeds], dim=1)  # (batch, seq_len+vis_len, d_model)
+        # pass through transformer layers
         for layer in self.layers:
-            x = layer(x, src_mask)
+            x = layer(x, mask)
 
         return x
+
+
 
 class Decoder(nn.Module):
     def __init__(self, dec_voc_size, d_model, ffn_hidden,src_pad_idx, n_head, n_layers, drop_prob, device):
@@ -297,7 +304,8 @@ class Decoder(nn.Module):
 
 class Transformer(nn.Module):
 
-    def __init__(self, src_pad_idx, trg_pad_idx, trg_sos_idx,eos_token_id, enc_voc_size, dec_voc_size, d_model, n_head,
+    def __init__(self, src_pad_idx, trg_pad_idx, trg_sos_idx, eos_token_id,
+                 enc_voc_size, dec_voc_size, d_model, n_head,
                  ffn_hidden, n_layers, drop_prob, device):
         super().__init__()
         self.src_pad_idx = src_pad_idx
@@ -305,49 +313,82 @@ class Transformer(nn.Module):
         self.trg_sos_idx = trg_sos_idx
         self.eos_token   = eos_token_id
         self.device = device
-        self.encoder = Encoder(d_model=d_model,
-                               n_head=n_head,
-                               src_pad_idx=src_pad_idx,
-                               ffn_hidden=ffn_hidden,
-                               enc_voc_size=enc_voc_size,
-                               drop_prob=drop_prob,
-                               n_layers=n_layers,
-                               device=device)
 
-        self.decoder = Decoder(d_model=d_model,
-                               n_head=n_head,
-                               src_pad_idx=src_pad_idx,
-                               ffn_hidden=ffn_hidden,
-                               dec_voc_size=dec_voc_size,
-                               drop_prob=drop_prob,
-                               n_layers=n_layers,
-                               device=device)
+        # Vision encoder
+        self.vision_encoder = VisionEncoder(
+            backbone="vit",
+            model_name="google/vit-base-patch16-224-in21k",
+            d_model=d_model,
+            device=device
+        )
 
-    def forward(self, src, trg):
-        src_mask = self.make_src_mask(src)
+        self.encoder = Encoder(
+            d_model=d_model,
+            n_head=n_head,
+            src_pad_idx=src_pad_idx,
+            ffn_hidden=ffn_hidden,
+            enc_voc_size=enc_voc_size,
+            drop_prob=drop_prob,
+            n_layers=n_layers,
+            device=device
+        )
+
+        self.decoder = Decoder(
+            d_model=d_model,
+            n_head=n_head,
+            src_pad_idx=src_pad_idx,
+            ffn_hidden=ffn_hidden,
+            dec_voc_size=dec_voc_size,
+            drop_prob=drop_prob,
+            n_layers=n_layers,
+            device=device
+        )
+
+    def make_src_mask(self, src, vision_embeds=None):
+        """
+        src: (B, src_len)
+        vision_embeds: (B, vis_len, d_model) or None
+        """
+        batch_size, src_len = src.size()
+        mask = (src != self.src_pad_idx).unsqueeze(1).unsqueeze(2)  # (B,1,1,src_len)
+
+        if vision_embeds is not None:
+            vis_len = vision_embeds.size(1)
+            vision_mask = torch.ones(batch_size, 1, 1, vis_len, device=src.device)
+            mask = torch.cat([mask, vision_mask], dim=-1)  # (B,1,1,src_len+vis_len)
+
+        return mask
+
+    def make_trg_mask(self, trg):
+        batch_size, trg_len = trg.size()
+        trg_pad_mask = (trg != self.trg_pad_idx).unsqueeze(1).unsqueeze(2)  # (B,1,1,trg_len)
+
+        causal_mask = torch.tril(torch.ones(trg_len, trg_len, device=self.device)).bool()
+        causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # (1,1,trg_len,trg_len)
+
+        return trg_pad_mask & causal_mask
+
+    def forward(self, src, trg, images=None):
+        vision_embeds = None
+        if self.vision_encoder is not None and images is not None:
+            vision_embeds = self.vision_encoder(images)
+
+        src_mask = self.make_src_mask(src, vision_embeds)
         trg_mask = self.make_trg_mask(trg)
-        enc_src = self.encoder(src, src_mask)
+
+        enc_src = self.encoder(src, src_mask, vision_embeds=vision_embeds)
         output = self.decoder(trg, enc_src, trg_mask, src_mask)
         return output
 
-    def make_src_mask(self, src):
-        src_mask = (src != self.src_pad_idx).unsqueeze(1).unsqueeze(2)
-        return src_mask
+    @torch.no_grad()
+    def generate(self, inp_tokens, max_len=50, images=None):
+        # Get vision embeddings if images are provided
+        vision_embeds = None
+        if self.vision_encoder is not None and images is not None:
+            vision_embeds = self.vision_encoder(images)
 
-    def make_trg_mask(self, trg):
-        trg_len = trg.size(1)  # fix for 3D input
-
-        trg_pad_mask = (trg != self.trg_pad_idx).unsqueeze(1).unsqueeze(2)  # [B, 1, 1, L]
-        trg_sub_mask = torch.tril(torch.ones((trg_len, trg_len), device=self.device)).bool()  # [L, L]
-        trg_sub_mask = trg_sub_mask.unsqueeze(0).unsqueeze(0)  # [1, 1, L, L]
-        trg_mask = trg_pad_mask & trg_sub_mask  # [B, 1, L, L]
-        return trg_mask
-
-    
-    @torch.no_grad
-    def generate(self,inp_tokens,max_len=50):
-        
-        src_mask = self.make_src_mask(inp_tokens)
+        # Build source mask with vision tokens included
+        src_mask = self.make_src_mask(inp_tokens, vision_embeds)
 
         # Start target sequence with <sos>
         trg_indices = [self.trg_sos_idx]
@@ -355,18 +396,15 @@ class Transformer(nn.Module):
             trg_tensor = torch.tensor(trg_indices, dtype=torch.long, device=self.device).unsqueeze(0)
             trg_mask = self.make_trg_mask(trg_tensor)
 
-            # Forward pass
-            enc_src = self.encoder(inp_tokens, src_mask)
+            # Encode text + optional vision
+            enc_src = self.encoder(inp_tokens, src_mask, vision_embeds=vision_embeds)
             output = self.decoder(trg_tensor, enc_src, trg_mask, src_mask)
-            # Get logits for last token
-            last_token_logits = output[:, -1, :]  # Shape: [batch, vocab_size]
-            next_token = last_token_logits.argmax(-1).item()
 
-            # Stop if <pad> or <eos> (if you have <eos>)
+            # Pick next token
+            next_token = output[:, -1, :].argmax(-1).item()
             if next_token == self.eos_token:
                 break
             trg_indices.append(next_token)
 
-        # Remove <sos> and decode
-        output_tokens = trg_indices[1:]
-        return output_tokens
+        return trg_indices[1:]  # remove <sos>
+
