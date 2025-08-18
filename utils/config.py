@@ -10,7 +10,7 @@ ffn_hidden = 128     # Feedforward hidden layer size
 drop_prob = 0.1      # Dropout probability
 
 # =================== Training Configs ===================
-batch_size = 128     # Training batch size
+batch_size = 64     # Training batch size
 init_lr = 0.0005        # Initial learning rate
 factor = 0.9         # Learning rate decay factor
 patience = 10        # Early stopping patience
