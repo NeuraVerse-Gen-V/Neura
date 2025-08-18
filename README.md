@@ -58,25 +58,30 @@ Update Inference Pipeline
 
 ```
 /PROJECT_EXHIBITION
-├── main.py                     # Main controller
-├── trainer.py                  # Used to train the model
+├── main.py                     # Orchestrator: runs vision + model + voice
+├── trainer.py                  # Training loop for text + multimodal
+│
 ├── model/
-│   ├── transformer.py          # Encoder-decoder model
-|   ├── vision_encoder.py       # ViT or CNN encoder for image → embedding
-│   ├── tokenizer.py            # BPE tokenizer
-│   ├── inference.py            # generate() + structured output
-│   └── reflex_generator.py     # (Optional fallback generator)
+│   ├── transformer.py          # Encoder–decoder backbone
+│   ├── vision_encoder.py       # Wrapper: ViT/Swin/ConvNeXt → embeddings
+│   ├── tokenizer.py            # Custom BPE
+│   ├── inference.py            # generate(), beam search, structured response
+│   └── reflex_generator.py     # Optional rule-based fallback
+│
 ├── voice/
-│   ├── stt.py                  # Speech-to-text → tensor
-│   └── tts.py                  # Text-to-speech
+│   ├── stt.py                  # Speech → text
+│   └── tts.py                  # Text → speech
+│
 ├── vision/
-│   ├── screen_reader.py        # Screen capture + OCR or CNN
-│   └── preprocess.py           # Image → tensor
+│   ├── screen_reader.py        # Webcam / screen capture
+│   ├── preprocess.py           # Resize, normalize, augmentation
+│   └── ocr.py                  # (optional) text from screen for context
+│
 ├── utils/
-│   ├── config.py               # JSON config loader/saver
-│   ├── emotion_control.py      # Inject user/bot emotion tokens
-│   ├── output_parser.py        # Parse & validate model JSON output
-│   └── datasets/               # Dataset loaders, preprocessors, and splitters
+│   ├── config.py               # JSON config handler
+│   ├── emotion_control.py      # Inject tokens to control bot mood
+│   ├── output_parser.py        # Validate chatbot output (JSON/text)
+│   └── datasets/               # Dataset loaders (text / multimodal)
 
 
 ```
