@@ -21,8 +21,6 @@ epoch = 1000         # Number of training epochs
 clip = 1             # Gradient clipping threshold
 weight_decay = 5e-4  # L2 regularization (weight decay)
 no_of_lines=100    # Number of lines to read from the dataset
-size_of_image=224    # Size of the input image for vision tasks
-
 # =================== Tokenizer ===================
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
 

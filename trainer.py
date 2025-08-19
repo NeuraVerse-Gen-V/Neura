@@ -4,7 +4,7 @@ from utils.config import *
 from utils import dataloader
 
 from torch.optim import Adam
-from torch.utils.data import DataLoader, TensorDataset, random_split
+from torch.utils.data import DataLoader, TensorDataset
 
 from tqdm import tqdm
 
@@ -91,32 +91,36 @@ def initialize_weights(m):
 input_labels = data["input"][:no_of_lines]
 output_labels = data["output"][:no_of_lines]
 
-inp_tensor, out_tensor = dataloader.tensorize(
-    input_labels=input_labels,
-    output_labels=output_labels
-)
+inp_tensor,out_tensor=dataloader.tensorize(input_labels=input_labels,output_labels=output_labels)
 
 # Validate data
 if len(input_labels) != len(output_labels):
     raise ValueError(f"Input and output lengths don't match: {len(input_labels)} vs {len(output_labels)}")
 
+
 model = Transformer().to(device)
-model.apply(initialize_weights)
+
+
+
+#model.apply(initialize_weights)
 
 optimizer = Adam(params=model.parameters(),
                  lr=init_lr,
                  weight_decay=weight_decay,
                  eps=adam_eps)
 
+# Use custom warmup scheduler that incorporates warmup parameter from config
 scheduler = WarmupScheduler(optimizer=optimizer,
                            d_model=d_model,
                            warmup_steps=warmup,
                            factor=factor,
-                           lr_patience=5)
+                           lr_patience=5)  # Separate patience for LR scheduling
 
+# Early stopping uses the patience parameter from config
 early_stopper = EarlyStopper(patience=patience, min_delta=0.001)
 
 criterion = nn.CrossEntropyLoss(ignore_index=src_pad_idx)
+
 
 def train_and_evaluate(model, input_tensor, output_tensor, clip, num_epochs=None, target_val_loss=1.0):
     if num_epochs is None:
@@ -224,7 +228,8 @@ def train_and_evaluate(model, input_tensor, output_tensor, clip, num_epochs=None
     
     return model
 
-if __name__ == "__main__":
+if __name__=="__main__":
+    #load the model weights if available
     checkpoint_path = "best_model.pt"
     if os.path.exists(checkpoint_path):
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
@@ -233,13 +238,11 @@ if __name__ == "__main__":
         print("No checkpoint found, starting training from scratch.")
 
     print(f'The model has {count_parameters(model):,} trainable parameters')
-
-    trained_model = train_and_evaluate(
-        model=model,
-        input_tensor=inp_tensor,
-        output_tensor=out_tensor,
-        clip=clip
-    )
-
+    #print(inp_tensor,out_tensor)
+    
+    # Train and evaluate the model with validation-based early stopping
+    trained_model = train_and_evaluate(model=model, input_tensor=inp_tensor, output_tensor=out_tensor, clip=clip)
+    
+    # Save the final best model
     torch.save(trained_model.state_dict(), checkpoint_path)
     print(f"Best model saved as {checkpoint_path}")
