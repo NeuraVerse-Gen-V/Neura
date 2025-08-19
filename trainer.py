@@ -108,18 +108,7 @@ if len(input_labels) != len(output_labels):
     raise ValueError(f"Input and output lengths don't match: {len(input_labels)} vs {len(output_labels)}")
 
 
-model = Transformer(src_pad_idx=src_pad_idx,
-                    trg_pad_idx=trg_pad_idx,
-                    trg_sos_idx=trg_sos_idx,
-                    eos_token_id=eos_token,
-                    d_model=d_model,
-                    enc_voc_size=enc_voc_size,
-                    dec_voc_size=dec_voc_size,
-                    ffn_hidden=ffn_hidden,
-                    n_head=n_heads,
-                    n_layers=n_layers,
-                    drop_prob=drop_prob,
-                    device=device).to(device)
+model = Transformer().to(device)
 
 #freeze the vision encoder parameters
 print("Freezing vision encoder parameters...")
