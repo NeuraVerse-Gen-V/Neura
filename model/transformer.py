@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from model.vision_encoder import VisionEncoder
 from utils.config import *
 """
 ______Transformer Model Components______
@@ -262,16 +261,10 @@ class Encoder(nn.Module):
             for _ in range(n_layers)
         ])
 
-    def forward(self, src, mask=None, vision_embeds=None):
-        # embed text
+    def forward(self, src, mask=None):
         x = self.emb(src)  # (batch, seq_len, d_model)
-        # concat vision embeddings if provided
-        if vision_embeds is not None:
-            x = torch.cat([x, vision_embeds], dim=1)  # (batch, seq_len+vis_len, d_model)
-        # pass through transformer layers
         for layer in self.layers:
             x = layer(x, mask)
-
         return x
 
 
@@ -313,14 +306,6 @@ class Transformer(nn.Module):
         self.eos_token   = eos_token
         self.device = device
 
-        # Vision encoder
-        self.vision_encoder = VisionEncoder(
-            backbone="vit",
-            model_name="google/vit-base-patch16-224-in21k",
-            d_model=d_model,
-            device=device
-        )
-
         self.encoder = Encoder(
             d_model=d_model,
             n_head=n_heads,
@@ -343,67 +328,37 @@ class Transformer(nn.Module):
             device=device
         )
 
-    def make_src_mask(self, src, vision_embeds=None):
-        """
-        src: (B, src_len)
-        vision_embeds: (B, vis_len, d_model) or None
-        """
+    def make_src_mask(self, src):
         batch_size, src_len = src.size()
         mask = (src != self.src_pad_idx).unsqueeze(1).unsqueeze(2)  # (B,1,1,src_len)
-
-        if vision_embeds is not None:
-            vis_len = vision_embeds.size(1)
-            vision_mask = torch.ones(batch_size, 1, 1, vis_len, device=src.device)
-            mask = torch.cat([mask, vision_mask], dim=-1)  # (B,1,1,src_len+vis_len)
-
         return mask
 
     def make_trg_mask(self, trg):
         batch_size, trg_len = trg.size()
         trg_pad_mask = (trg != self.trg_pad_idx).unsqueeze(1).unsqueeze(2)  # (B,1,1,trg_len)
-
         causal_mask = torch.tril(torch.ones(trg_len, trg_len, device=self.device)).bool()
         causal_mask = causal_mask.unsqueeze(0).unsqueeze(0)  # (1,1,trg_len,trg_len)
-
         return trg_pad_mask & causal_mask
 
-    def forward(self, src, trg, images=None):
-        vision_embeds = None
-        if self.vision_encoder is not None and images is not None:
-            vision_embeds = self.vision_encoder(images)
-
-        src_mask = self.make_src_mask(src, vision_embeds)
+    def forward(self, src, trg):
+        src_mask = self.make_src_mask(src)
         trg_mask = self.make_trg_mask(trg)
-
-        enc_src = self.encoder(src, src_mask, vision_embeds=vision_embeds)
+        enc_src = self.encoder(src, src_mask)
         output = self.decoder(trg, enc_src, trg_mask, src_mask)
         return output
 
     @torch.no_grad()
-    def generate(self, inp_tokens, max_len=50, images=None):
-        # Get vision embeddings if images are provided
-        vision_embeds = None
-        if self.vision_encoder is not None and images is not None:
-            vision_embeds = self.vision_encoder(images)
-
-        # Build source mask with vision tokens included
-        src_mask = self.make_src_mask(inp_tokens, vision_embeds)
-
-        # Start target sequence with <sos>
+    def generate(self, inp_tokens, max_len=50):
+        src_mask = self.make_src_mask(inp_tokens)
         trg_indices = [self.trg_sos_idx]
         for _ in range(max_len):
             trg_tensor = torch.tensor(trg_indices, dtype=torch.long, device=self.device).unsqueeze(0)
             trg_mask = self.make_trg_mask(trg_tensor)
-
-            # Encode text + optional vision
-            enc_src = self.encoder(inp_tokens, src_mask, vision_embeds=vision_embeds)
+            enc_src = self.encoder(inp_tokens, src_mask)
             output = self.decoder(trg_tensor, enc_src, trg_mask, src_mask)
-
-            # Pick next token
             next_token = output[:, -1, :].argmax(-1).item()
             if next_token == self.eos_token:
                 break
             trg_indices.append(next_token)
-
         return trg_indices[1:]  # remove <sos>
 
