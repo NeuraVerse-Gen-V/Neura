@@ -4,7 +4,7 @@ from utils.config import *
 from utils import dataloader
 
 from torch.optim import Adam
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, random_split
 
 from tqdm import tqdm
 
@@ -87,160 +87,140 @@ def initialize_weights(m):
     if hasattr(m, 'weight') and m.weight.dim() > 1:
         nn.init.kaiming_uniform_(m.weight.data)
     
-#convert loaded data into tensors
-input_labels=data["input"][:10000]
-output_labels=data["output"][:10000]
+# Convert loaded data into tensors
+input_labels = data["input"][:no_of_lines]
+output_labels = data["output"][:no_of_lines]
 
-inp_tensor,out_tensor=dataloader.tensorize(input_labels=input_labels,output_labels=output_labels)
+inp_tensor, out_tensor = dataloader.tensorize(
+    input_labels=input_labels,
+    output_labels=output_labels
+)
 
 # Validate data
 if len(input_labels) != len(output_labels):
     raise ValueError(f"Input and output lengths don't match: {len(input_labels)} vs {len(output_labels)}")
 
-
-model = Transformer(src_pad_idx=src_pad_idx,
-                    trg_pad_idx=trg_pad_idx,
-                    trg_sos_idx=trg_sos_idx,
-                    eos_token_id=eos_token,
-                    d_model=d_model,
-                    enc_voc_size=enc_voc_size,
-                    dec_voc_size=dec_voc_size,
-                    ffn_hidden=ffn_hidden,
-                    n_head=n_heads,
-                    n_layers=n_layers,
-                    drop_prob=drop_prob,
-                    device=device).to(device)
-
-
-
-#model.apply(initialize_weights)
+model = Transformer().to(device)
+model.apply(initialize_weights)
 
 optimizer = Adam(params=model.parameters(),
                  lr=init_lr,
                  weight_decay=weight_decay,
                  eps=adam_eps)
 
-# Use custom warmup scheduler that incorporates warmup parameter from config
 scheduler = WarmupScheduler(optimizer=optimizer,
                            d_model=d_model,
                            warmup_steps=warmup,
                            factor=factor,
-                           lr_patience=5)  # Separate patience for LR scheduling
+                           lr_patience=5)
 
-# Early stopping uses the patience parameter from config
 early_stopper = EarlyStopper(patience=patience, min_delta=0.001)
 
 criterion = nn.CrossEntropyLoss(ignore_index=src_pad_idx)
 
-
 def train_and_evaluate(model, input_tensor, output_tensor, clip, num_epochs=None, target_val_loss=1.0):
     if num_epochs is None:
-        num_epochs = epoch  # Use global epoch from config
-    
-    # Create dataset and dataloader for proper batching
+        num_epochs = epoch  # from config
+
+    # --- Dataset setup ---
     dataset = TensorDataset(input_tensor, output_tensor)
-    
-    # Adjust batch size if dataset is too small
-    effective_batch_size = min(batch_size, len(dataset))
+
+    # --- Train/Val Split ---
+    val_ratio = datasplit
+    val_size = int(len(dataset) * val_ratio)
+    train_size = len(dataset) - val_size
+    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+    effective_batch_size = min(batch_size, len(train_dataset))
     if effective_batch_size < batch_size:
-        print(f"Warning: Dataset size ({len(dataset)}) is smaller than batch size ({batch_size}). Using batch size {effective_batch_size}")
-    
-    train_dataloader = DataLoader(dataset, batch_size=effective_batch_size, shuffle=True, drop_last=False)
-    val_dataloader = DataLoader(dataset, batch_size=effective_batch_size, shuffle=False, drop_last=False)
-    
+        print(f"⚠️ Train set size ({len(train_dataset)}) < batch size ({batch_size}), using {effective_batch_size}")
+
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=effective_batch_size,
+        shuffle=True,
+        drop_last=False
+    )
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=effective_batch_size,
+        shuffle=False,
+        drop_last=False
+    )
+
     best_val_loss = float('inf')
     best_model_state = None
-    
-    print(f"Training will stop when validation loss reaches {target_val_loss} or below")
-    
-    with open("utils/log.json","r") as ri:
-        logs=json.load(ri)
+
+    print(f"Training until val_loss ≤ {target_val_loss}")
+
+    with open("utils/log.json", "r") as ri:
+        logs = json.load(ri)
+
     for epoch_idx in tqdm(range(num_epochs), desc="Training model"):
-        # Training phase
+        # --- Training ---
         model.train()
         train_loss = 0
-        num_train_batches = 0
-        
-        for batch_idx, (src, trg) in tqdm(enumerate(train_dataloader),desc="Training ",total=len(train_dataloader)):
-            src = src.to(device)
-            trg = trg.to(device)
-            
+        for batch in tqdm(train_dataloader, desc="Training", total=len(train_dataloader)):
+            src, trg = batch
+            src, trg = src.to(device), trg.to(device)
+
             optimizer.zero_grad()
-            
-            # Forward pass
             output = model(src, trg[:, :-1])
-            output_reshape = output.contiguous().view(-1, output.shape[-1])
-            trg_reshape = trg[:, 1:].contiguous().view(-1)
-            
-            # Calculate loss
-            loss = criterion(output_reshape, trg_reshape)
-            
-            # Backward pass
+
+            loss = criterion(output.contiguous().view(-1, output.shape[-1]),
+                             trg[:, 1:].contiguous().view(-1))
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
             optimizer.step()
-            
             train_loss += loss.item()
-            num_train_batches += 1
-        
-        # Validation phase
+
+        # --- Validation ---
+        if len(val_dataloader) == 0:
+            print("⚠️ Using train data as validation data since no validation set was created.")
+            val_dataloader = train_dataloader
         model.eval()
         val_loss = 0
-        num_val_batches = 0
-        
         with torch.no_grad():
-            for batch_idx, (src, trg) in tqdm(enumerate(val_dataloader),desc="Evaluating ",total=len(val_dataloader)):
-                src = src.to(device)
-                trg = trg.to(device)
-                
-                # Forward pass
+            for batch in tqdm(val_dataloader, desc="Evaluating", total=len(val_dataloader)):
+                src, trg = batch
+                src, trg = src.to(device), trg.to(device)
                 output = model(src, trg[:, :-1])
-                output_reshape = output.contiguous().view(-1, output.shape[-1])
-                trg_reshape = trg[:, 1:].contiguous().view(-1)
-                
-                # Calculate loss
-                loss = criterion(output_reshape, trg_reshape)
+                loss = criterion(output.contiguous().view(-1, output.shape[-1]),
+                                 trg[:, 1:].contiguous().view(-1))
                 val_loss += loss.item()
-                num_val_batches += 1
-        
-        # Calculate average losses
-        avg_train_loss = train_loss / num_train_batches if num_train_batches > 0 else 0
-        avg_val_loss = val_loss / num_val_batches if num_val_batches > 0 else 0
+
+        avg_train_loss = train_loss / len(train_dataloader)
+        avg_val_loss = val_loss / len(val_dataloader)
         current_lr = scheduler.get_last_lr()[0]
-        
-        print(f'Epoch {epoch_idx+1}/{num_epochs} - Train Loss: {avg_train_loss:.4f} - Val Loss: {avg_val_loss:.4f} - LR: {current_lr:.6f}')
-        
-        logs[str(epoch_idx+1)]={"train":avg_train_loss,"val":avg_val_loss,"lr":current_lr}
-        with open("utils/log.json","w") as wi:
-            json.dump(logs,wi,indent=4)
-        # Save best model based on validation loss
+
+        print(f"Epoch {epoch_idx+1}/{num_epochs} | Train: {avg_train_loss:.4f} | Val: {avg_val_loss:.4f} | LR: {current_lr:.6f}")
+
+        logs[str(epoch_idx+1)] = {"train": avg_train_loss, "val": avg_val_loss, "lr": current_lr}
+        with open("utils/log.json", "w") as wi:
+            json.dump(logs, wi, indent=4)
+
+        # --- Save best ---
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            best_model_state = model.state_dict().copy()
-            print(f"New best model saved with validation loss: {best_val_loss:.4f}")
-        
-        # Update learning rate scheduler
+            best_model_state = {k: v.clone() for k, v in model.state_dict().items()}
+            print(f"✅ New best model (val_loss={best_val_loss:.4f})")
+
         scheduler.step(avg_val_loss)
-        
-        # Check if target validation loss is reached
+
         if avg_val_loss <= target_val_loss:
-            print(f"Target validation loss {target_val_loss} reached! Stopping training at epoch {epoch_idx+1} with val loss: {avg_val_loss:.4f}")
+            print(f"🎯 Target val_loss {target_val_loss} reached at epoch {epoch_idx+1}")
             break
-        
-        # Check for early stopping using validation loss and patience parameter from config
         if early_stopper.early_stop(avg_val_loss):
-            print(f"Early stopping triggered after {epoch_idx+1} epochs. No improvement in validation loss for {patience} epochs.")
+            print(f"⏹️ Early stopping at epoch {epoch_idx+1}")
             break
-    
-    # Load best model state
-    if best_model_state is not None:
+
+    if best_model_state:
         model.load_state_dict(best_model_state)
-        print(f"Loaded best model with validation loss: {best_val_loss:.4f}")
-    
+        print(f"🔄 Loaded best model (val_loss={best_val_loss:.4f})")
+
     return model
 
-if __name__=="__main__":
-    #load the model weights if available
+if __name__ == "__main__":
     checkpoint_path = "best_model.pt"
     if os.path.exists(checkpoint_path):
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
@@ -249,11 +229,13 @@ if __name__=="__main__":
         print("No checkpoint found, starting training from scratch.")
 
     print(f'The model has {count_parameters(model):,} trainable parameters')
-    #print(inp_tensor,out_tensor)
-    
-    # Train and evaluate the model with validation-based early stopping
-    trained_model = train_and_evaluate(model=model, input_tensor=inp_tensor, output_tensor=out_tensor, clip=clip)
-    
-    # Save the final best model
+
+    trained_model = train_and_evaluate(
+        model=model,
+        input_tensor=inp_tensor,
+        output_tensor=out_tensor,
+        clip=clip
+    )
+
     torch.save(trained_model.state_dict(), checkpoint_path)
     print(f"Best model saved as {checkpoint_path}")

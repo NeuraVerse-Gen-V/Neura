@@ -10,8 +10,9 @@ ffn_hidden = 128     # Feedforward hidden layer size
 drop_prob = 0.1      # Dropout probability
 
 # =================== Training Configs ===================
-batch_size = 64     # Training batch size
-init_lr = 0.0005        # Initial learning rate
+datasplit=0.0        # Percentage of data to use for validation (0.1=10%)
+batch_size = 64      # Training batch size
+init_lr = 0.0005     # Initial learning rate
 factor = 0.9         # Learning rate decay factor
 patience = 10        # Early stopping patience
 warmup = 100         # Warm-up steps
@@ -19,6 +20,8 @@ adam_eps = 5e-9      # Adam optimizer epsilon
 epoch = 1000         # Number of training epochs
 clip = 1             # Gradient clipping threshold
 weight_decay = 5e-4  # L2 regularization (weight decay)
+no_of_lines=100    # Number of lines to read from the dataset
+size_of_image=224    # Size of the input image for vision tasks
 
 # =================== Tokenizer ===================
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
