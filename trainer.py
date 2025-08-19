@@ -4,7 +4,7 @@ from utils.config import *
 from utils import dataloader
 
 from torch.optim import Adam
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, random_split
 
 from tqdm import tqdm
 
@@ -154,13 +154,18 @@ def train_and_evaluate(model, input_tensor, output_tensor, image_tensor, clip, n
         dataset = TensorDataset(input_tensor, output_tensor)
         use_images = False
 
-    # --- Dataloaders ---
-    effective_batch_size = min(batch_size, len(dataset))
+    # --- Train/Val Split ---
+    val_ratio = datasplit  
+    val_size = int(len(dataset) * val_ratio)
+    train_size = len(dataset) - val_size
+    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+    effective_batch_size = min(batch_size, len(train_dataset))
     if effective_batch_size < batch_size:
-        print(f"⚠️ Dataset size ({len(dataset)}) < batch size ({batch_size}), using {effective_batch_size}")
-    
-    train_dataloader = DataLoader(dataset, batch_size=effective_batch_size, shuffle=True, drop_last=False)
-    val_dataloader   = DataLoader(dataset, batch_size=effective_batch_size, shuffle=False, drop_last=False)
+        print(f"⚠️ Train set size ({len(train_dataset)}) < batch size ({batch_size}), using {effective_batch_size}")
+
+    train_dataloader = DataLoader(train_dataset, batch_size=effective_batch_size, shuffle=True, drop_last=False)
+    val_dataloader   = DataLoader(val_dataset, batch_size=effective_batch_size, shuffle=False, drop_last=False)
     
     best_val_loss = float('inf')
     best_model_state = None
