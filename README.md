@@ -90,7 +90,7 @@ Update Inference Pipeline
 
 # Data Flow Overview
 ```
-![Image](utils/Dataflow.png)
+![Image](./utils/Dataflow.png)
 ```
 ---
 
