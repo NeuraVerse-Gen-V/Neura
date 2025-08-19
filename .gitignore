@@ -1,8 +1,10 @@
 best_model.pt
 
-_pycache_
+_pycache_/
 
 data.csv
 emotions_dataset.csv
 small_data.csv
 images/
+model/__pycache__/transformer.cpython-313.pyc
+utils/__pycache__/config.cpython-313.pyc
