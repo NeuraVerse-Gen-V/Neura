@@ -23,7 +23,7 @@ TODO:
 """
 
 #load up data.csv for training
-data=dataloader.load_data("utils/datasets/small_data.csv")
+data=dataloader.load_data("utils/datasets/img.csv")
 if data is None:
     raise ValueError("Failed to load training data")
 
@@ -121,9 +121,13 @@ model = Transformer(src_pad_idx=src_pad_idx,
                     drop_prob=drop_prob,
                     device=device).to(device)
 
-
-
-#model.apply(initialize_weights)
+#freeze the vision encoder parameters
+print("Freezing vision encoder parameters...")
+for name, param in model.named_parameters():
+    if name.startswith("vision_encoder"):
+        param.requires_grad = False
+print("Vision encoder parameters frozen.")
+model.apply(initialize_weights)
 
 optimizer = Adam(params=model.parameters(),
                  lr=init_lr,
