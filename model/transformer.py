@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+from utils.config import *
 """
 ______Transformer Model Components______
 
@@ -313,16 +314,15 @@ class Decoder(nn.Module):
 
 class Transformer(nn.Module):
 
-    def __init__(self, src_pad_idx, trg_pad_idx, trg_sos_idx,eos_token_id, enc_voc_size, dec_voc_size, d_model, n_head, max_len,
-                 ffn_hidden, n_layers, drop_prob, device):
+    def __init__(self):
         super().__init__()
         self.src_pad_idx = src_pad_idx
         self.trg_pad_idx = trg_pad_idx
         self.trg_sos_idx = trg_sos_idx
-        self.eos_token   = eos_token_id
+        self.eos_token   = eos_token
         self.device = device
         self.encoder = Encoder(d_model=d_model,
-                               n_head=n_head,
+                               n_head=n_heads,
                                src_pad_idx=src_pad_idx,
                                max_len=max_len,
                                ffn_hidden=ffn_hidden,
@@ -332,7 +332,7 @@ class Transformer(nn.Module):
                                device=device)
 
         self.decoder = Decoder(d_model=d_model,
-                               n_head=n_head,
+                               n_head=n_heads,
                                src_pad_idx=src_pad_idx,
                                max_len=max_len,
                                ffn_hidden=ffn_hidden,

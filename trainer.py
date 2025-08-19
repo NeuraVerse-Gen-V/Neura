@@ -195,7 +195,7 @@ def train_and_evaluate(model, input_tensor, output_tensor, clip, num_epochs=None
         
         print(f'Epoch {epoch_idx+1}/{num_epochs} - Train Loss: {avg_train_loss:.4f} - Val Loss: {avg_val_loss:.4f} - LR: {current_lr:.6f}')
         
-        logs[epoch_idx+1]={"train":avg_train_loss,"val":avg_val_loss,"lr":current_lr}
+        logs[str(epoch_idx+1)]={"train":avg_train_loss,"val":avg_val_loss,"lr":current_lr}
         with open("utils/log.json","w") as wi:
             json.dump(logs,wi,indent=4)
         # Save best model based on validation loss
