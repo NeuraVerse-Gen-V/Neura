@@ -13,8 +13,8 @@ import torch.nn as nn
 import json
 import os
 
-# Load up data.csv for training
-data = dataloader.load_data("utils/datasets/small_data.csv")
+#load up data.csv for training
+data=dataloader.load_data("utils/datasets/small_data.csv")
 if data is None:
     raise ValueError("Failed to load training data")
 
