@@ -14,7 +14,7 @@ import json
 import os
 
 #load up data.csv for training
-data=dataloader.load_data("utils/datasets/data.csv")
+data=dataloader.load_data("utils/datasets/small_data.csv")
 if data is None:
     raise ValueError("Failed to load training data")
 
