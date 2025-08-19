@@ -1,7 +1,4 @@
-import pandas as pd
+from datasets import load_dataset
 
 # Login using e.g. `huggingface-cli login` to access this dataset
-df = pd.read_parquet("hf://datasets/boltuix/emotions-dataset/emotions_dataset.parquet")
-
-# Save as CSV
-df.to_csv("emotions_dataset.csv", index=False)
+ds = load_dataset("peteole/coco2017-segmentation-10k-256x256")
