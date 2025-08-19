@@ -159,25 +159,51 @@ Output:
 ---
 # Ideal HyperParams
 
-```
+```python
 # General
-learning_rate      = 3e-4
-weight_decay       = 0.01
-warmup_steps       = 500
-num_epochs         = 3–5
-batch_size         = 4  # increase if enough VRAM
+import torch
+from transformers import AutoTokenizer
 
-# Gradient
-gradient_accumulation_steps = 4  # simulates bigger batch
+# ==================== Model Configs ====================
+max_len = 256        # Maximum generation length
+d_model = 128        # Model embedding dimension
+n_layers = 4         # Number of transformer layers
+n_heads = 4          # Number of attention heads
+ffn_hidden = 128     # Feedforward hidden layer size
+drop_prob = 0.1      # Dropout probability
 
-# Model
-max_seq_len        = 256–512
-vocab_size         = len(tokenizer.vocab)
-embedding_dim      = 256 or 512
-num_layers         = 6–8
-num_heads          = 4–8
+# =================== Training Configs ===================
+batch_size = 64     # Training batch size
+init_lr = 0.0005        # Initial learning rate
+factor = 0.9         # Learning rate decay factor
+patience = 10        # Early stopping patience
+warmup = 100         # Warm-up steps
+adam_eps = 5e-9      # Adam optimizer epsilon
+epoch = 1000         # Number of training epochs
+clip = 1             # Gradient clipping threshold
+weight_decay = 5e-4  # L2 regularization (weight decay)
+no_of_lines=10000    # Number of lines to read from the dataset
+size_of_image=224    # Size of the input image for vision tasks
 
-# Optimization
-scheduler          = "cosine"
-fp16               = True (if GPU)
+# =================== Tokenizer ===================
+tokenizer = AutoTokenizer.from_pretrained("gpt2")
+
+# Add pad/eos tokens if they don’t exist in GPT-2 tokenizer
+if tokenizer.pad_token is None:
+    tokenizer.add_special_tokens({
+        "pad_token": "<pad>",
+        "eos_token": "<eos>",
+        "bos_token": "<sos>"
+    })
+
+# =================== Dynamic Parameters =================
+src_pad_idx = tokenizer.pad_token_id
+trg_pad_idx = tokenizer.pad_token_id
+trg_sos_idx = tokenizer.bos_token_id
+eos_token   = tokenizer.eos_token_id
+
+enc_voc_size = len(tokenizer)
+dec_voc_size = len(tokenizer)
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 ```
