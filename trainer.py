@@ -91,10 +91,9 @@ def initialize_weights(m):
 input_labels = data["input"][:no_of_lines]
 output_labels = data["output"][:no_of_lines]
 
-inp_tensor, out_tensor, _ = dataloader.tensorize(
+inp_tensor, out_tensor = dataloader.tensorize(
     input_labels=input_labels,
-    output_labels=output_labels,
-    image_paths=None  # No images
+    output_labels=output_labels
 )
 
 # Validate data
