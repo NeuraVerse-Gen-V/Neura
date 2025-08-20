@@ -129,10 +129,7 @@ for L in seq_lengths:
     runtimes.append((time.time() - start) * 1000)
 
 # ----------------------- PLOT ALL GRAPHS -----------------------
-graph.plot_param_distribution(layer_params)
 graph.plot_runtime_scaling(seq_lengths, runtimes)
-if ppl is not None:
-    graph.plot_perplexity(["current"], [ppl])
 graph.plot_training()
 
 # ----------------------- SAVE MARKDOWN REPORT -----------------------
@@ -159,9 +156,7 @@ with open(save_dir+"analysis_report.md", "w") as f:
     f.write(md_table + "\n\n")
 
     f.write("## Graphs\n\n")
-    f.write(f"![Params](param_distribution.png)\n\n")
     f.write(f"![Runtime](runtime_scaling.png)\n\n")
-    f.write(f"![Perplexity](perplexity_over_time.png)\n\n")
     f.write(f"![Training](training.png)\n\n")
 
 print(f"✅ Analysis report saved to {save_dir}analysis_report.md")
