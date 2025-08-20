@@ -189,9 +189,9 @@
 
 ![Params](param_distribution.png)
 
-![Runtime](utils/analysis/runtime_scaling.png)
+![Runtime](runtime_scaling.png)
 
-![Perplexity](utils/analysis/perplexity_over_time.png)
+![Perplexity](perplexity_over_time.png)
 
-![Training](utils/analysis/training.png)
+![Training](training.png)
 
