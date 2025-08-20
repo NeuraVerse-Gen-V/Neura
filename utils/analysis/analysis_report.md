@@ -187,7 +187,7 @@
 
 ## Graphs
 
-![Params](utils/analysis/param_distribution.png)
+![Params](./utils/analysis/param_distribution.png)
 
 ![Runtime](utils/analysis/runtime_scaling.png)
 
