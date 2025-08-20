@@ -2,7 +2,6 @@ import subprocess
 import sys
 import os
 
-subprocess.check_call([sys.executable, "-m", "pip", "install", "torch==2.4.1"])
 def install_requirements(requirements_file="utils/setup/requirements.txt"):
     if not os.path.exists(requirements_file):
         print(f"{requirements_file} not found!")
