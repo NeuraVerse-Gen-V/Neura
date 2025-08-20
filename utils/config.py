@@ -40,4 +40,6 @@ eos_token   = tokenizer.eos_token_id
 
 enc_voc_size = len(tokenizer)
 dec_voc_size = len(tokenizer)
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu"
+if torch.cuda.is_available():
+    device = "cuda"

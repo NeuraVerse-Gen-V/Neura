@@ -1,6 +1,7 @@
 best_model.pt
 
-_pycache_
+__pycache__/
+.vscode/
 
 data.csv
 emotions_dataset.csv
