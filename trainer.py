@@ -4,7 +4,7 @@ from utils.config import *
 from utils import dataloader
 
 from torch.optim import Adam
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset,random_split
 
 from tqdm import tqdm
 
@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 import json
 import os
+
 
 #load up data.csv for training
 data=dataloader.load_data("utils/datasets/small_data.csv")
@@ -87,22 +88,37 @@ def initialize_weights(m):
     if hasattr(m, 'weight') and m.weight.dim() > 1:
         nn.init.kaiming_uniform_(m.weight.data)
     
-# Convert loaded data into tensors
-input_labels = data["input"][:no_of_lines]
+# Extract slices
+input_labels  = data["input"][:no_of_lines]
 output_labels = data["output"][:no_of_lines]
+try:
+    emotion_labels = data["emotion"][:no_of_lines]
+except:
+    emotion_labels=["Neutral" for i in range(len(input_labels))]
+try:
+    tone_labels   = data["tone"][:no_of_lines]
+except:
+    tone_labels= ["Neutral" for i in range(len(input_labels))]
 
-inp_tensor,out_tensor=dataloader.tensorize(input_labels=input_labels,output_labels=output_labels)
+output_labels = [
+    f"{o} [EMOTION={e}] [TONE={t}]"
+    for o, e, t in zip(output_labels, emotion_labels, tone_labels)
+]
 
-# Validate data
+# Convert to tensors
+inp_tensor, out_tensor = dataloader.tensorize(
+    input_labels=input_labels,
+    output_labels=output_labels
+)
+
+# Validation
 if len(input_labels) != len(output_labels):
     raise ValueError(f"Input and output lengths don't match: {len(input_labels)} vs {len(output_labels)}")
 
 
 model = Transformer().to(device)
-
-
-
 #model.apply(initialize_weights)
+
 
 optimizer = Adam(params=model.parameters(),
                  lr=init_lr,
@@ -128,15 +144,46 @@ def train_and_evaluate(model, input_tensor, output_tensor, clip, num_epochs=None
     
     # Create dataset and dataloader for proper batching
     dataset = TensorDataset(input_tensor, output_tensor)
+
     
+
+
     # Adjust batch size if dataset is too small
     effective_batch_size = min(batch_size, len(dataset))
     if effective_batch_size < batch_size:
         print(f"Warning: Dataset size ({len(dataset)}) is smaller than batch size ({batch_size}). Using batch size {effective_batch_size}")
     
-    train_dataloader = DataLoader(dataset, batch_size=effective_batch_size, shuffle=True, drop_last=False)
-    val_dataloader = DataLoader(dataset, batch_size=effective_batch_size, shuffle=False, drop_last=False)
+    dataset_size = len(dataset)
+
+    if datasplit > 0:
+        val_size = int(dataset_size * datasplit)
+        train_size = dataset_size - val_size
+
+        train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+    else:
+        # use the same dataset for both train and val
+        train_dataset = val_dataset = dataset
+
+    # Dataloaders
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=effective_batch_size,
+        shuffle=True,
+        drop_last=False
+    )
+
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=effective_batch_size,
+        shuffle=False,
+        drop_last=False
+    )
     
+    #USED VARIABLES CLEANUP
+    
+    del input_tensor,output_tensor,dataset
+    #----------------------
     best_val_loss = float('inf')
     best_model_state = None
     
@@ -240,6 +287,8 @@ if __name__=="__main__":
     print(f'The model has {count_parameters(model):,} trainable parameters')
     #print(inp_tensor,out_tensor)
     
+    #cleanup before training
+    data,emotion_labels,tone_labels
     # Train and evaluate the model with validation-based early stopping
     trained_model = train_and_evaluate(model=model, input_tensor=inp_tensor, output_tensor=out_tensor, clip=clip)
     

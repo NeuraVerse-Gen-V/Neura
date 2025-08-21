@@ -4,9 +4,9 @@
 - Estimated Size  : 77.87 MB
 - Device          : cpu
 - Checkpoint      : best_model.pt
-- Avg Gen Time    : 218.99 ms
-- Throughput      : 4.57 seq/s
-- Validation PPL  : 2.63
+- Avg Gen Time    : 405.67 ms
+- Throughput      : 2.47 seq/s
+- Validation PPL  : 5.07
 
 ## Model Parameter Breakdown
 
