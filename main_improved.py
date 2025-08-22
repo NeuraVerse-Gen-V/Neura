@@ -126,7 +126,7 @@ def generate_beam_search(input_text, max_len=50, beam_size=3):
 
 # Test different generation methods
 if __name__ == "__main__":
-    test_input = "Hey Neura! Try using the fire spell more often!"
+    test_input = "how are you?"
     
     print("=== Testing Different Generation Methods ===")
     print(f"Input: '{test_input}'")

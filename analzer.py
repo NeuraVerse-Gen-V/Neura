@@ -5,7 +5,7 @@ import math
 import tabulate
 import psutil
 from torch.utils.data import DataLoader, TensorDataset
-
+from tqdm import tqdm
 from model.transformer import Transformer
 from utils.config import *
 from utils.dataloader import load_data, tensorize
@@ -96,7 +96,7 @@ def evaluate_perplexity(model, dataloader, device):
     criterion = torch.nn.CrossEntropyLoss(ignore_index=src_pad_idx)
 
     with torch.no_grad():
-        for src, trg in dataloader:
+        for src, trg in tqdm(dataloader,desc="Evaluating Perplexity",total=len(dataloader)):
             src, trg = src.to(device), trg.to(device)
             outputs = model(src, trg[:, :-1])   # [B, T-1, V]
             logits = outputs.reshape(-1, outputs.size(-1))
@@ -110,7 +110,7 @@ def evaluate_perplexity(model, dataloader, device):
 
 val_loader = None
 ppl = None
-df_path = "utils/datasets/small_data.csv"
+df_path = "utils/datasets/neura.csv"
 df = load_data(df_path)
 if df is not None:
     inp, out = tensorize(df["input"], df["output"])

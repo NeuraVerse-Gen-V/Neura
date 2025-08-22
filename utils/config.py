@@ -3,10 +3,10 @@ from transformers import AutoTokenizer
 
 # ==================== Model Configs ====================
 max_len = 256        # Maximum generation length
-d_model = 128        # Model embedding dimension
-n_layers = 4         # Number of transformer layers
-n_heads = 4          # Number of attention heads
-ffn_hidden = 128     # Feedforward hidden layer size
+d_model = 16        # Model embedding dimension
+n_layers = 2         # Number of transformer layers
+n_heads = 2          # Number of attention heads
+ffn_hidden = 16     # Feedforward hidden layer size
 drop_prob = 0.1      # Dropout probability
 
 # =================== Training Configs ===================
@@ -20,7 +20,7 @@ adam_eps = 5e-9      # Adam optimizer epsilon
 epoch = 1000         # Number of training epochs
 clip = 1             # Gradient clipping threshold
 weight_decay = 5e-4  # L2 regularization (weight decay)
-no_of_lines=1000    # Number of lines to read from the dataset
+no_of_lines=20000    # Number of lines to read from the dataset
 # =================== Tokenizer ===================
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
 
