@@ -1,7 +1,6 @@
-import pandas as pd
+from datasets import load_dataset
 
-# Login using e.g. `huggingface-cli login` to access this dataset
-df = pd.read_parquet("hf://datasets/boltuix/emotions-dataset/emotions_dataset.parquet")
+ds = load_dataset("SAGI-1/Greetings_DPO_dataset_V1")
 
-# Save as CSV
-df.to_csv("emotions_dataset.csv", index=False)
+# Save the 'train' split to CSV (change 'train' if needed)
+ds["train"].to_csv("greetings.csv")

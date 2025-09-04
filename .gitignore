@@ -2,8 +2,4 @@ best_model.pt
 
 __pycache__/
 .vscode/
-
-data.csv
-emotions_dataset.csv
-small_data.csv
-neura.csv
+utils/datasets/

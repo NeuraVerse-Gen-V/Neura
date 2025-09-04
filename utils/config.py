@@ -3,24 +3,24 @@ from transformers import AutoTokenizer
 
 # ==================== Model Configs ====================
 max_len = 256        # Maximum generation length
-d_model = 16        # Model embedding dimension
-n_layers = 2         # Number of transformer layers
-n_heads = 2          # Number of attention heads
-ffn_hidden = 16     # Feedforward hidden layer size
+d_model = 64        # Model embedding dimension
+n_layers = 4         # Number of transformer layers
+n_heads = 4          # Number of attention heads
+ffn_hidden = 64     # Feedforward hidden layer size
 drop_prob = 0.1      # Dropout probability
 
 # =================== Training Configs ===================
 datasplit=0.1        # Percentage of data to use for validation (0.1=10%)
-batch_size = 64      # Training batch size
+batch_size = 16      # Training batch size
 init_lr = 0.0005     # Initial learning rate
 factor = 0.9         # Learning rate decay factor
 patience = 10        # Early stopping patience
 warmup = 100         # Warm-up steps
 adam_eps = 5e-9      # Adam optimizer epsilon
-epoch = 1000         # Number of training epochs
+epochs = 1000         # Number of training epochs
 clip = 1             # Gradient clipping threshold
 weight_decay = 5e-4  # L2 regularization (weight decay)
-no_of_lines=20000    # Number of lines to read from the dataset
+no_of_lines=10000    # Number of lines to read from the dataset
 # =================== Tokenizer ===================
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
 

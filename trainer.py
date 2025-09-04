@@ -10,12 +10,12 @@ from tqdm import tqdm
 
 import torch
 import torch.nn as nn
-import json
 import os
+import gc
 
 
 #load up data.csv for training
-data=dataloader.load_data("utils/datasets/neura.csv")
+data=dataloader.load_data("utils/datasets/data.csv")
 if data is None:
     raise ValueError("Failed to load training data")
 
@@ -139,140 +139,78 @@ criterion = nn.CrossEntropyLoss(ignore_index=src_pad_idx)
 
 
 def train_and_evaluate(model, input_tensor, output_tensor, clip, num_epochs=None, target_val_loss=1.0):
+    # Default epochs if not specified
     if num_epochs is None:
-        num_epochs = epoch  # Use global epoch from config
-    
-    # Create dataset and dataloader for proper batching
+        num_epochs = epochs
+
+    # Split data into train/val (90/10 split)
     dataset = TensorDataset(input_tensor, output_tensor)
+    val_size = int(0.1 * len(dataset))
+    train_size = len(dataset) - val_size
+    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-    
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size)
 
-
-    # Adjust batch size if dataset is too small
-    effective_batch_size = min(batch_size, len(dataset))
-    if effective_batch_size < batch_size:
-        print(f"Warning: Dataset size ({len(dataset)}) is smaller than batch size ({batch_size}). Using batch size {effective_batch_size}")
-    
-    dataset_size = len(dataset)
-
-    if datasplit > 0:
-        val_size = int(dataset_size * datasplit)
-        train_size = dataset_size - val_size
-
-        train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
-
-    else:
-        # use the same dataset for both train and val
-        train_dataset = val_dataset = dataset
-
-    # Dataloaders
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=effective_batch_size,
-        shuffle=True,
-        drop_last=False
-    )
-
-    val_dataloader = DataLoader(
-        val_dataset,
-        batch_size=effective_batch_size,
-        shuffle=False,
-        drop_last=False
-    )
-    
-    #USED VARIABLES CLEANUP
-    
-    del input_tensor,output_tensor,dataset
-    #----------------------
     best_val_loss = float('inf')
     best_model_state = None
-    
-    print(f"Training will stop when validation loss reaches {target_val_loss} or below")
-    
-    with open("utils/log.json","r") as ri:
-        logs=json.load(ri)
-    for epoch_idx in tqdm(range(num_epochs), desc="Training model"):
-        # Training phase
+
+    for epoch in range(1, num_epochs + 1):
         model.train()
-        train_loss = 0
-        num_train_batches = 0
-        
-        for batch_idx, (src, trg) in tqdm(enumerate(train_dataloader),desc="Training ",total=len(train_dataloader)):
-            src = src.to(device)
-            trg = trg.to(device)
-            
+        train_loss = 0.0
+
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch}/{num_epochs} - Training"):
+            src, tgt = batch
+            src, tgt = src.to(device), tgt.to(device)
+
             optimizer.zero_grad()
-            
-            # Forward pass
-            output = model(src, trg[:, :-1])
-            output_reshape = output.contiguous().view(-1, output.shape[-1])
-            trg_reshape = trg[:, 1:].contiguous().view(-1)
-            
-            # Calculate loss
-            loss = criterion(output_reshape, trg_reshape)
-            
-            # Backward pass
+            output = model(src, tgt[:, :-1])  # Teacher forcing
+
+            # Reshape for loss: (batch*seq, vocab)
+            output = output.reshape(-1, output.shape[-1])
+            tgt_y = tgt[:, 1:].reshape(-1)
+
+            loss = criterion(output, tgt_y)
             loss.backward()
+
+            # Gradient clipping
             torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
             optimizer.step()
-            
+
+            # Scheduler step (with train loss)
+            scheduler.step(loss.item())
+
             train_loss += loss.item()
-            num_train_batches += 1
-        
-        # Validation phase
+
+        avg_train_loss = train_loss / len(train_loader)
+
+        # Validation
         model.eval()
-        val_loss = 0
-        num_val_batches = 0
-        
+        val_loss = 0.0
         with torch.no_grad():
-            for batch_idx, (src, trg) in tqdm(enumerate(val_dataloader),desc="Evaluating ",total=len(val_dataloader)):
-                src = src.to(device)
-                trg = trg.to(device)
-                
-                # Forward pass
-                output = model(src, trg[:, :-1])
-                output_reshape = output.contiguous().view(-1, output.shape[-1])
-                trg_reshape = trg[:, 1:].contiguous().view(-1)
-                
-                # Calculate loss
-                loss = criterion(output_reshape, trg_reshape)
+            for batch in tqdm(val_loader, desc=f"Epoch {epoch}/{num_epochs} - Validation"):
+                src, tgt = batch
+                src, tgt = src.to(device), tgt.to(device)
+                output = model(src, tgt[:, :-1])
+                output = output.reshape(-1, output.shape[-1])
+                tgt_y = tgt[:, 1:].reshape(-1)
+                loss = criterion(output, tgt_y)
                 val_loss += loss.item()
-                num_val_batches += 1
-        
-        # Calculate average losses
-        avg_train_loss = train_loss / num_train_batches if num_train_batches > 0 else 0
-        avg_val_loss = val_loss / num_val_batches if num_val_batches > 0 else 0
-        current_lr = scheduler.get_last_lr()[0]
-        
-        print(f'Epoch {epoch_idx+1}/{num_epochs} - Train Loss: {avg_train_loss:.4f} - Val Loss: {avg_val_loss:.4f} - LR: {current_lr:.6f}')
-        
-        logs[str(epoch_idx+1)]={"train":avg_train_loss,"val":avg_val_loss,"lr":current_lr}
-        with open("utils/log.json","w") as wi:
-            json.dump(logs,wi,indent=4)
-        # Save best model based on validation loss
+        avg_val_loss = val_loss / len(val_loader)
+
+        print(f"Epoch {epoch}: Train Loss = {avg_train_loss:.4f}, Val Loss = {avg_val_loss:.4f}, LR = {scheduler.get_last_lr()[0]:.6f}")
+
+        # Early stopping
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            best_model_state = model.state_dict().copy()
-            print(f"New best model saved with validation loss: {best_val_loss:.4f}")
-        
-        # Update learning rate scheduler
-        scheduler.step(avg_val_loss)
-        
-        # Check if target validation loss is reached
-        if avg_val_loss <= target_val_loss:
-            print(f"Target validation loss {target_val_loss} reached! Stopping training at epoch {epoch_idx+1} with val loss: {avg_val_loss:.4f}")
+            best_model_state = model.state_dict()
+        if early_stopper.early_stop(avg_val_loss) or avg_val_loss <= target_val_loss:
+            print("Early stopping triggered.")
             break
-        
-        # Check for early stopping using validation loss and patience parameter from config
-        if early_stopper.early_stop(avg_val_loss):
-            print(f"Early stopping triggered after {epoch_idx+1} epochs. No improvement in validation loss for {patience} epochs.")
-            break
-    
-    # Load best model state
+
+    # Load best model state before returning
     if best_model_state is not None:
         model.load_state_dict(best_model_state)
-        print(f"Loaded best model with validation loss: {best_val_loss:.4f}")
-    
     return model
 
 if __name__=="__main__":
