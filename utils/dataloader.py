@@ -1,7 +1,6 @@
 import pandas as pd
 import torch
 from torch.nn.utils.rnn import pad_sequence
-from model.tokenizer import BPETokenizer
 from tqdm import tqdm
 from functools import lru_cache
 from utils.config import src_pad_idx as pad_token_id, trg_sos_idx, eos_token, tokenizer
