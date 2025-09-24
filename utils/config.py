@@ -43,3 +43,5 @@ dec_voc_size = len(tokenizer)
 device = "cpu"
 if torch.cuda.is_available():
     device = "cuda"
+
+print(tokenizer)

@@ -5,9 +5,9 @@ from model.tokenizer import BPETokenizer
 from utils.config import *
 import time
 
-tokenizer = BPETokenizer("gpt2")
+tokenizer = BPETokenizer()
 model = Transformer().to(device)
-model.load_state_dict(torch.load("best_model.pt", map_location=device))
+model.load_state_dict(torch.load("temp_best.pt", map_location=device))
 model.to(device)
 model.eval()
 

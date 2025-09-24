@@ -1,7 +1,7 @@
 from transformers import AutoTokenizer
 
 class BPETokenizer:
-    def __init__(self, vocab_path):
+    def __init__(self, vocab_path="gpt2"):
         self.tokenizer = AutoTokenizer.from_pretrained(vocab_path)
 
     def encode(self, text):

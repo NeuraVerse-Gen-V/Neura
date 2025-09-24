@@ -4,7 +4,7 @@ from torch.nn.utils.rnn import pad_sequence
 from model.tokenizer import BPETokenizer
 from tqdm import tqdm
 from functools import lru_cache
-from utils.config import src_pad_idx as pad_token_id, trg_sos_idx, eos_token
+from utils.config import src_pad_idx as pad_token_id, trg_sos_idx, eos_token, tokenizer
 
 
 # -----------------------------
@@ -21,34 +21,27 @@ def load_data(file_path):
 # -----------------------------
 # Cached Tokenizer
 # -----------------------------
-_tokenizer = None
-def get_tokenizer(path="gpt2"):
-    global _tokenizer
-    if _tokenizer is None:
-        _tokenizer = BPETokenizer(path)
-    return _tokenizer
 
 
 # -----------------------------
 # Encode with cache
 # -----------------------------
-@lru_cache(maxsize=50000)
-def encode_text(text, tokenizer_path="gpt2"):
-    tokenizer = get_tokenizer(tokenizer_path)
+#@lru_cache(maxsize=50000)
+def encode_text(text):
     return tokenizer.encode(text)
 
 
 # -----------------------------
 # Convert input/output → padded tensors
 # -----------------------------
-def tensorize(input_labels, output_labels, tokenizer_path="gpt2"):
+def tensorize(input_labels, output_labels):
     inp_tensors, out_tensors = [], []
 
     for x in tqdm(input_labels, desc="Encoding input labels"):
-        inp_tensors.append(torch.tensor(encode_text(x, tokenizer_path), dtype=torch.long))
+        inp_tensors.append(torch.tensor(encode_text(x), dtype=torch.long))
 
     for x in tqdm(output_labels, desc="Encoding output labels"):
-        tokens = encode_text(x, tokenizer_path)
+        tokens = encode_text(x)
         tokens = [trg_sos_idx] + tokens + [eos_token]   # <sos> ... tokens ... <eos>
         out_tensors.append(torch.tensor(tokens, dtype=torch.long))
 
