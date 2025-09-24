@@ -5,6 +5,15 @@
 This repository contains the AI Vtuber named Neura
 
 ---
+# NOTICE <current phase: 1>
+
+Due to resource limitations this Repo is no longer being worked upon
+Our model will be made in a different way but the core principle will be the same
+
+Feel free to use this code how ever you want to, see any improvements? Make a PR if you want.
+Happy coding ❤
+
+---
 
 # AI Model Roadmap
 
@@ -13,9 +22,7 @@ This repository contains the AI Vtuber named Neura
 1. Build an encoder-decoder transformer
 2. Develop a custom dataset loader
 3. Implement a BPE Tokenizer
-
    * Tokenization: words ⇄ tokens
-   * Trainer for tokenizer
 4. Create a training and inference script
 5. Add `config.py` for model configurations
 
